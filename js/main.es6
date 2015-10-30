@@ -41,6 +41,8 @@ class Sheen extends ThreeBoiler {
     this.mainScene.controlObject = this.controls.getObject();
     this.mainScene.pitchObject = this.controls.pitchObject();
 
+    this.clock = new THREE.Clock();
+
     $(document).click((ev) => {
       if ($(ev.target).is('a')) {
         return;
@@ -80,7 +82,7 @@ class Sheen extends ThreeBoiler {
     super.render();
 
     this.controls.update();
-    this.mainScene.update();
+    this.mainScene.update(this.clock.getDelta());
   }
 
   keypress(keycode) {

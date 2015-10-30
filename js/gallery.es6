@@ -45,9 +45,9 @@ export class Gallery {
     });
   }
 
-  update() {
+  update(dt) {
     if (this.layout) {
-      this.layout.update();
+      this.layout.update(dt);
     }
   }
 

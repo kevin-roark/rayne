@@ -65,15 +65,15 @@ export class MainScene extends SheenScene {
     return [this.lightContainer];
   }
 
-  update() {
-    super.update();
+  update(dt) {
+    super.update(dt);
 
     if (this.lightContainer) {
       this.lightContainer.position.y = this.camera.position.y - 5;
     }
 
     if (this.rayne) {
-      this.rayne.update();
+      this.rayne.update(dt);
     }
   }
 

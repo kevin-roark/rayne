@@ -1,7 +1,8 @@
 
 let THREE = require('three');
 let $ = require('jquery');
-let Physijs = require('../lib/physi.js');
+let Physijs = require('../lib/physi');
+let SPE = require('../lib/shader-particle-engine');
 import {GalleryLayout} from './gallery-layout.es6';
 
 export class RainRoom extends GalleryLayout {
@@ -14,6 +15,7 @@ export class RainRoom extends GalleryLayout {
     this.zPosition = options.zPosition || 0;
     this.roomLength = options.roomLength || 350;
     this.initialRaindropY = options.initialRaindropY || 500;
+    this.initialRainParticleY = options.initialRaindropY || 100;
 
     this.hasStarted = false;
 
@@ -21,13 +23,81 @@ export class RainRoom extends GalleryLayout {
       // perform initial layout
       for (var i = 0; i < 100; i++) {
         var media = this.media[i];
-        this.layoutMedia(i, media);
+        //this.layoutMedia(i, media);
       }
       this.nextMediaToAddIndex = i + 1;
+
+      this.setupRainParticleSystem();
     }
     else {
       // DO DOM
     }
+  }
+
+  setupRainParticleSystem() {
+    this.rainParticleGroup = new SPE.Group({
+  		texture: {
+        value: THREE.ImageUtils.loadTexture('/media/rain.png')
+      }
+    });
+
+    this.dummyEmitter = new SPE.Emitter({
+      maxAge: {
+        value: 0.5
+      },
+  		position: {
+        value: new THREE.Vector3(0, 0, -10),
+        spread: new THREE.Vector3( 0, 0, 0 )
+      },
+  		acceleration: {
+        value: new THREE.Vector3(0, -10, 0),
+        spread: new THREE.Vector3(30, 0, 30)
+      },
+  		velocity: {
+        value: new THREE.Vector3(0, -10, 0),
+        spread: new THREE.Vector3(10, 0, 10)
+      },
+      opacity: {
+        value: 0
+      },
+      color: {
+        value: [new THREE.Color(0x0000ff), new THREE.Color(0xffffff)]
+      },
+      size: {
+        value: 0.1
+      },
+  		particleCount: 1
+    });
+    this.rainParticleGroup.addEmitter(this.dummyEmitter);
+
+    this.rainEmitter = new SPE.Emitter({
+      maxAge: {
+        value: 6
+      },
+  		position: {
+        value: new THREE.Vector3(0, this.initialRainParticleY, 0),
+        spread: new THREE.Vector3( 0, 0, 0 )
+      },
+  		acceleration: {
+        value: new THREE.Vector3(0, -10, 0),
+        spread: new THREE.Vector3(30, 0, 30)
+      },
+  		velocity: {
+        value: new THREE.Vector3(0, -10, 0),
+        spread: new THREE.Vector3(10, 0, 10)
+      },
+      color: {
+        value: [new THREE.Color(0x0000ff), new THREE.Color(0xffffff)]
+      },
+      size: {
+        value: 1,
+        spread: 2
+      },
+  		particleCount: 10000
+  	});
+    this.rainParticleGroup.addEmitter(this.rainEmitter);
+
+    this.container.add(this.rainParticleGroup.mesh);
   }
 
   start() {
@@ -38,14 +108,14 @@ export class RainRoom extends GalleryLayout {
     }
   }
 
-  update() {
+  update(dt) {
     super.update();
 
     if (!this.hasStarted) {
       return;
     }
 
-
+    this.rainParticleGroup.tick(dt);
   }
 
   layoutMedia(index, media) {
