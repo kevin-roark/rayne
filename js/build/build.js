@@ -518,7 +518,8 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.xPosition = options.xPosition || 0;
     this.zPosition = options.zPosition || 0;
     this.roomLength = options.roomLength || 300;
-    this.emittersPerWall = options.emittersPerWall || 10;
+    this.emittersPerWall = options.emittersPerWall || 12;
+    this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || 500;
     this.initialRainParticleY = options.initialRaindropY || 50;
 
@@ -542,8 +543,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   _createClass(RainRoom, {
     setupRainParticleSystem: {
       value: function setupRainParticleSystem() {
+        var particlesPerEmitter = 666;
+
         this.rainParticleGroup = new SPE.Group({
-          texture: { value: THREE.ImageUtils.loadTexture("/media/rain.png") }
+          texture: { value: THREE.ImageUtils.loadTexture("/media/rain.png") },
+          maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall
         });
 
         this.dummyEmitter = new SPE.Emitter({
@@ -555,20 +559,18 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         });
         this.rainParticleGroup.addEmitter(this.dummyEmitter);
 
-        var spacePerEmitter = this.roomLength / this.emittersPerWall;
-
         for (var i = 0; i < this.emittersPerWall; i++) {
           var iEmitters = [];
-          var x = -this.roomLength / 2 + i * spacePerEmitter;
+          var x = -this.roomLength / 2 + i * this.spacePerEmitter;
 
           for (var j = 0; j < this.emittersPerWall; j++) {
-            var z = -this.roomLength / 2 + j * spacePerEmitter;
+            var z = -this.roomLength / 2 + j * this.spacePerEmitter;
 
             var emitter = new SPE.Emitter({
               maxAge: { value: 3 },
               position: {
                 value: new THREE.Vector3(x, this.initialRainParticleY, z),
-                spread: new THREE.Vector3(spacePerEmitter, 0, spacePerEmitter)
+                spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
               },
               acceleration: {
                 value: new THREE.Vector3(0, -10, 0),
@@ -580,8 +582,9 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
               },
               color: { value: [new THREE.Color(255), new THREE.Color(16777215)] },
               size: { value: 1, spread: 2 },
-              particleCount: 1000
+              particleCount: particlesPerEmitter
             });
+            emitter.__position = new THREE.Vector3(x, 0, z);
 
             iEmitters.push(emitter);
             this.rainParticleGroup.addEmitter(emitter);
@@ -609,6 +612,17 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         }
 
         this.rainParticleGroup.tick(dt);
+
+        var nearDistance = this.spacePerEmitter / 1.5 * (this.spacePerEmitter / 1.5);
+
+        for (var i = 0; i < this.emitters.length; i++) {
+          var iEmitters = this.emitters[i];
+          for (var j = 0; j < iEmitters.length; j++) {
+            var emitter = iEmitters[j];
+            var controlBelowThisEmitter = this.controlObject.position.distanceToSquared(emitter.__position) < nearDistance;
+            emitter.opacity.value = controlBelowThisEmitter ? 0 : 1;
+          }
+        }
       }
     },
     layoutMedia: {
