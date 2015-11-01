@@ -31,6 +31,13 @@ module.exports = function (camera, options) {
 	this.rollSpeed = options.rollSpeed || 0.5;
 	this.movementSpeedMultiplier = 1;
 
+	this.jumpEnabled = options.jumpEnabled !== undefined ? options.jumpEnabled : true;
+	this.canJump = true;
+	this.jumpVelocityBoost = 350;
+	this.jumpVelocity = 0;
+	this.jumpGroundThreshold = options.jumpGroundThreshold || 10;
+	this.mass = options.mass || 100;
+
 	this.dragToLook = options.dragToLook || false;
 	this.autoForward = options.autoForward || false;
 	this.keysAsRotation = options.keysAsRotation || false;
@@ -138,6 +145,14 @@ module.exports = function (camera, options) {
 				/*Q*/this.moveState.rollLeft = 1;break;
 			case 69:
 				/*E*/this.moveState.rollRight = 1;break;
+
+			case 32:
+				/* space */{
+					if (this.jumpEnabled && this.canJump) {
+						this.jumpVelocity += this.jumpVelocityBoost;
+						this.canJump = false;
+					}
+				}break;
 		}
 
 		this.updateMovementVector();
@@ -290,6 +305,16 @@ module.exports = function (camera, options) {
 
 			if (this.allowYMovement) {
 				yawObject.translateY(this.moveVector.y * moveMult);
+			} else if (this.jumpEnabled) {
+				this.jumpVelocity -= 9.8 * this.mass * delta;
+				var jdy = this.jumpVelocity * delta;
+				yawObject.translateY(jdy);
+
+				if (yawObject.position.y < this.jumpGroundThreshold) {
+					this.jumpVelocity = 0;
+					yawObject.position.y = this.jumpGroundThreshold;
+					this.canJump = true;
+				}
 			}
 
 			yawObject.translateZ(this.moveVector.z * moveMult);
@@ -526,10 +551,10 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRainParticleY = options.initialRaindropY || 50;
+    this.initialRainParticleY = options.initialRaindropY || 100;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 20;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 15;
 
     this.hasStarted = false;
     this.emitters = [];
@@ -643,7 +668,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         });
         var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
 
-        var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 5); // geometry, material, "mass"
+        var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
 
         return mesh;
@@ -3310,7 +3335,10 @@ var Sheen = (function (_ThreeBoiler) {
       this.renderer.setClearColor(0, 1);
     }
 
-    this.controls = new FlyControls(this.camera, { allowYMovement: true });
+    this.controls = new FlyControls(this.camera, {
+      allowYMovement: false,
+      movementSpeed: 15
+    });
     this.scene.add(this.controls.getObject());
 
     this.mainScene = new MainScene(this.renderer, this.camera, this.scene, { onPhone: ON_PHONE });
@@ -3340,7 +3368,7 @@ var Sheen = (function (_ThreeBoiler) {
       value: function createScene() {
         var scene = new Physijs.Scene();
 
-        scene.setGravity(new THREE.Vector3(0, -30, 0));
+        scene.setGravity(new THREE.Vector3(0, -50, 0));
 
         scene.addEventListener("update", function () {
           // here wanna apply new forces to objects and things based on state

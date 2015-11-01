@@ -34,7 +34,10 @@ class Sheen extends ThreeBoiler {
       this.renderer.setClearColor(0x000000, 1);
     }
 
-    this.controls = new FlyControls(this.camera, {allowYMovement: true});
+    this.controls = new FlyControls(this.camera, {
+      allowYMovement: false,
+      movementSpeed: 15.0
+    });
     this.scene.add(this.controls.getObject());
 
     this.mainScene = new MainScene(this.renderer, this.camera, this.scene, {onPhone: ON_PHONE});
@@ -60,7 +63,7 @@ class Sheen extends ThreeBoiler {
   createScene() {
     var scene = new Physijs.Scene();
 
-    scene.setGravity(new THREE.Vector3(0, -30, 0));
+    scene.setGravity(new THREE.Vector3(0, -50, 0));
 
     scene.addEventListener('update', function() {
       // here wanna apply new forces to objects and things based on state

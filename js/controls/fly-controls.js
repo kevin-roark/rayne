@@ -28,6 +28,13 @@ module.exports = function (camera, options) {
 	this.rollSpeed = options.rollSpeed || 0.5;
 	this.movementSpeedMultiplier = 1.0;
 
+	this.jumpEnabled = options.jumpEnabled !== undefined ? options.jumpEnabled : true;
+	this.canJump = true;
+	this.jumpVelocityBoost = 350.0;
+	this.jumpVelocity = 0.0;
+	this.jumpGroundThreshold = options.jumpGroundThreshold || 10.0;
+	this.mass = options.mass || 100.0;
+
 	this.dragToLook = options.dragToLook || false;
 	this.autoForward = options.autoForward || false;
 	this.keysAsRotation = options.keysAsRotation || false;
@@ -122,6 +129,13 @@ module.exports = function (camera, options) {
 
 			case 81: /*Q*/ this.moveState.rollLeft = 1; break;
 			case 69: /*E*/ this.moveState.rollRight = 1; break;
+
+			case 32: /* space */ {
+				if (this.jumpEnabled && this.canJump) {
+					this.jumpVelocity += this.jumpVelocityBoost;
+					this.canJump = false;
+				}
+			} break;
 		}
 
 		this.updateMovementVector();
@@ -257,6 +271,17 @@ module.exports = function (camera, options) {
 
 			if (this.allowYMovement) {
 				yawObject.translateY( this.moveVector.y * moveMult );
+			}
+			else if (this.jumpEnabled) {
+				this.jumpVelocity -= (9.8 * this.mass * delta);
+				var jdy = this.jumpVelocity * delta;
+				yawObject.translateY(jdy);
+
+				if (yawObject.position.y < this.jumpGroundThreshold) {
+					this.jumpVelocity = 0;
+					yawObject.position.y = this.jumpGroundThreshold;
+					this.canJump = true;
+				}
 			}
 
 			yawObject.translateZ( this.moveVector.z * moveMult );

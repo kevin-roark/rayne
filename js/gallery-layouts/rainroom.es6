@@ -20,10 +20,10 @@ export class RainRoom extends GalleryLayout {
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRainParticleY = options.initialRaindropY || 50;
+    this.initialRainParticleY = options.initialRaindropY || 100;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 20;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 15;
 
     this.hasStarted = false;
     this.emitters = [];
@@ -137,7 +137,7 @@ export class RainRoom extends GalleryLayout {
     });
     var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
 
-    var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 5); // geometry, material, "mass"
+    var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
     mesh.castShadow = true;
 
     return mesh;
