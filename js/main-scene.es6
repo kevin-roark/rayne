@@ -194,7 +194,7 @@ export class MainScene extends SheenScene {
     this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight, this.spotLight];
 
     function makeDirectionalLight() {
-      var light = new THREE.DirectionalLight( 0xffffff, 0.9);
+      var light = new THREE.DirectionalLight( 0xffffff, 0.25);
       light.color.setHSL( 0.1, 1, 0.95 );
 
       container.add(light);

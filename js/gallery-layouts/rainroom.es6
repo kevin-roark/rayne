@@ -1,11 +1,11 @@
 
 let THREE = require('three');
-let $ = require('jquery');
 let Physijs = require('../lib/physi');
 let SPE = require('../lib/shader-particle-engine');
 
 var SheenMesh = require('../sheen-mesh');
 var geometryUtil = require('../geometry-util');
+var parametricGeometries = require('../parametric-geometries');
 import {GalleryLayout} from './gallery-layout.es6';
 
 export class RainRoom extends GalleryLayout {
@@ -19,7 +19,7 @@ export class RainRoom extends GalleryLayout {
     this.roomLength = options.roomLength || 300;
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
-    this.initialRaindropY = options.initialRaindropY || 500;
+    this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
     this.initialRainParticleY = options.initialRaindropY || 50;
 
     this.hasStarted = false;
@@ -29,7 +29,7 @@ export class RainRoom extends GalleryLayout {
       // perform initial layout
       for (var i = 0; i < 100; i++) {
         var media = this.media[i];
-        //this.layoutMedia(i, media);
+        this.layoutMedia(i, media);
       }
       this.nextMediaToAddIndex = i + 1;
 
@@ -152,7 +152,7 @@ export class RainRoom extends GalleryLayout {
 
     //console.log('laying out: ' + index);
 
-    var mesh = this.createRaindrop(media, 10);
+    var mesh = this.createRaindrop(media);
 
     mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
 
@@ -163,11 +163,18 @@ export class RainRoom extends GalleryLayout {
     return (Math.random() - 0.5) * (this.roomLength / 2);
   }
 
-  createRaindrop(media, length) {
-    var geometry = new THREE.SphereGeometry(length, 32, 32);
+  createRaindrop(media) {
+    var radius = Math.round(Math.random() * 5 + 1);
+    var geometry = parametricGeometries.createRaindrop({radius: radius});
 
-    var texture = this.createTexture(media);
-    var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide}); // want shiny? maybe l8r
+    var material = new THREE.MeshPhongMaterial({
+      map: this.createTexture(media),
+      side: THREE.DoubleSide,
+      shininess: 100,
+      transparent: true, opacity: Math.random() * 0.15 + 0.8, // opacity between 0.8 and 0.95
+      specular: 0x0084dd, // give off a bright blue light
+      wireframe: Math.random() > 0.95 // 5% of the time do a wireframe because, chill 3d computer
+    });
     var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
 
     var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 5); // geometry, material, "mass"
@@ -177,7 +184,7 @@ export class RainRoom extends GalleryLayout {
   }
 
   createGhost(media) {
-    return this.createRaindrop(media, 40); // temp
+    return this.createRaindrop(media); // temp
   }
 
 }
