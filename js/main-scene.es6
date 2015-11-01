@@ -185,7 +185,13 @@ export class MainScene extends SheenScene {
     this.rightLight.position.set(200, 75, -45);
     this.rightLight.shadowDarkness = 0.05;
 
-    this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight];
+    this.spotLight = new THREE.SpotLight(0xff0000);
+    this.spotLight.position.set(0, 200, -20);
+    setupShadow(this.spotLight);
+    this.spotLight.shadowCameraFov = 30;
+    container.add(this.spotLight);
+
+    this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight, this.spotLight];
 
     function makeDirectionalLight() {
       var light = new THREE.DirectionalLight( 0xffffff, 0.9);

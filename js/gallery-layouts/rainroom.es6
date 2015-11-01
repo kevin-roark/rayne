@@ -35,8 +35,24 @@ export class RainRoom extends GalleryLayout {
 
       this.setupRainParticleSystem();
 
-      this.ground = createGround(this.roomLength, this.yLevel - 10);
+      this.ground = createGround(this.roomLength, this.yLevel);
       this.ground.addTo(this.container);
+
+      this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
+      this.ceiling.addTo(this.container);
+
+      this.walls = [
+        createWall({direction: 'left', roomLength: this.roomLength, wallHeight: this.roomLength}),
+        createWall({direction: 'right', roomLength: this.roomLength, wallHeight: this.roomLength}),
+        createWall({direction: 'front', roomLength: this.roomLength, wallHeight: this.roomLength}),
+        createWall({direction: 'back', roomLength: this.roomLength, wallHeight: this.roomLength}),
+      ];
+      this.walls.forEach((wall) => {
+        wall.addTo(this.container);
+      });
+
+      // move up
+      this.controlObject.position.y = 10;
     }
     else {
       // DO DOM
@@ -48,7 +64,8 @@ export class RainRoom extends GalleryLayout {
 
     this.rainParticleGroup = new SPE.Group({
       texture: {value: THREE.ImageUtils.loadTexture('/media/rain.png')},
-      maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall
+      maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
+      fog: true
     });
 
     this.dummyEmitter = new SPE.Emitter({
@@ -81,6 +98,8 @@ export class RainRoom extends GalleryLayout {
             value: new THREE.Vector3(0, -10, 0),
             spread: new THREE.Vector3(1, 0, 1)
           },
+          wiggle: {spread: 10},
+          rotation: {angleSpread: 1},
           color: {value: [new THREE.Color(0x0000ff), new THREE.Color(0xffffff)]},
           size: {value: 1, spread: 2},
       		particleCount: particlesPerEmitter
@@ -188,8 +207,71 @@ function createGround(length, y) {
 
     position: new THREE.Vector3(0, y, 0),
 
-    collisionHandler: () => {
+    collisionHandler: () => {}
+  });
+}
 
-    }
+function createWall(options) {
+  var direction = options.direction || 'left';
+  var roomLength = options.roomLength || 100;
+  var wallHeight = options.wallHeight || 100;
+
+  var position = new THREE.Vector3();
+  switch (direction) {
+    case 'left':
+      position.set(-roomLength/2, wallHeight/2 , 0);
+      break;
+
+    case 'right':
+      position.set(roomLength/2, wallHeight/2 , 0);
+      break;
+
+    case 'back':
+      position.set(0, wallHeight/2, -roomLength/2);
+      break;
+
+    case 'front':
+      position.set(0, wallHeight/2, roomLength/2);
+      break;
+  }
+
+  return new SheenMesh({
+    meshCreator: (callback) => {
+      var geometry;
+      switch (direction) {
+        case 'left':
+        case 'right':
+          geometry = new THREE.BoxGeometry(1, wallHeight, roomLength);
+          break;
+
+        case 'back':
+        case 'front':
+          geometry = new THREE.BoxGeometry(roomLength, wallHeight, 1);
+          break;
+      }
+
+      if (!geometry) {
+        callback(null, null, null);
+        return;
+      }
+
+      geometryUtil.computeShit(geometry);
+
+      let rawMaterial = new THREE.MeshBasicMaterial({
+        color: 0x111111,
+        side: THREE.DoubleSide
+      });
+
+      // lets go high friction, low restitution
+      let material = Physijs.createMaterial(rawMaterial, 0.8, 0.4);
+
+      let mesh = new Physijs.BoxMesh(geometry, material, 0);
+
+      callback(geometry, material, mesh);
+    },
+
+    position: position,
+
+    collisionHandler: () => {}
   });
 }

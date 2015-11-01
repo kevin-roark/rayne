@@ -513,6 +513,8 @@ var GalleryLayout = require("./gallery-layout.es6").GalleryLayout;
 
 var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   function RainRoom(options) {
+    var _this = this;
+
     _classCallCheck(this, RainRoom);
 
     _get(Object.getPrototypeOf(RainRoom.prototype), "constructor", this).call(this, options);
@@ -539,8 +541,19 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
       this.setupRainParticleSystem();
 
-      this.ground = createGround(this.roomLength, this.yLevel - 10);
+      this.ground = createGround(this.roomLength, this.yLevel);
       this.ground.addTo(this.container);
+
+      this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
+      this.ceiling.addTo(this.container);
+
+      this.walls = [createWall({ direction: "left", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "right", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "front", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "back", roomLength: this.roomLength, wallHeight: this.roomLength })];
+      this.walls.forEach(function (wall) {
+        wall.addTo(_this.container);
+      });
+
+      // move up
+      this.controlObject.position.y = 10;
     } else {}
   }
 
@@ -553,7 +566,8 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         this.rainParticleGroup = new SPE.Group({
           texture: { value: THREE.ImageUtils.loadTexture("/media/rain.png") },
-          maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall
+          maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
+          fog: true
         });
 
         this.dummyEmitter = new SPE.Emitter({
@@ -586,6 +600,8 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
                 value: new THREE.Vector3(0, -10, 0),
                 spread: new THREE.Vector3(1, 0, 1)
               },
+              wiggle: { spread: 10 },
+              rotation: { angleSpread: 1 },
               color: { value: [new THREE.Color(255), new THREE.Color(16777215)] },
               size: { value: 1, spread: 2 },
               particleCount: particlesPerEmitter
@@ -699,6 +715,71 @@ function createGround(length, y) {
     },
 
     position: new THREE.Vector3(0, y, 0),
+
+    collisionHandler: function () {}
+  });
+}
+
+function createWall(options) {
+  var direction = options.direction || "left";
+  var roomLength = options.roomLength || 100;
+  var wallHeight = options.wallHeight || 100;
+
+  var position = new THREE.Vector3();
+  switch (direction) {
+    case "left":
+      position.set(-roomLength / 2, wallHeight / 2, 0);
+      break;
+
+    case "right":
+      position.set(roomLength / 2, wallHeight / 2, 0);
+      break;
+
+    case "back":
+      position.set(0, wallHeight / 2, -roomLength / 2);
+      break;
+
+    case "front":
+      position.set(0, wallHeight / 2, roomLength / 2);
+      break;
+  }
+
+  return new SheenMesh({
+    meshCreator: function (callback) {
+      var geometry;
+      switch (direction) {
+        case "left":
+        case "right":
+          geometry = new THREE.BoxGeometry(1, wallHeight, roomLength);
+          break;
+
+        case "back":
+        case "front":
+          geometry = new THREE.BoxGeometry(roomLength, wallHeight, 1);
+          break;
+      }
+
+      if (!geometry) {
+        callback(null, null, null);
+        return;
+      }
+
+      geometryUtil.computeShit(geometry);
+
+      var rawMaterial = new THREE.MeshBasicMaterial({
+        color: 1118481,
+        side: THREE.DoubleSide
+      });
+
+      // lets go high friction, low restitution
+      var material = Physijs.createMaterial(rawMaterial, 0.8, 0.4);
+
+      var mesh = new Physijs.BoxMesh(geometry, material, 0);
+
+      callback(geometry, material, mesh);
+    },
+
+    position: position,
 
     collisionHandler: function () {}
   });
@@ -3123,7 +3204,13 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         this.rightLight.position.set(200, 75, -45);
         this.rightLight.shadowDarkness = 0.05;
 
-        this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight];
+        this.spotLight = new THREE.SpotLight(16711680);
+        this.spotLight.position.set(0, 200, -20);
+        setupShadow(this.spotLight);
+        this.spotLight.shadowCameraFov = 30;
+        container.add(this.spotLight);
+
+        this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight, this.spotLight];
 
         function makeDirectionalLight() {
           var light = new THREE.DirectionalLight(16777215, 0.9);
@@ -3233,6 +3320,8 @@ var Sheen = (function (_ThreeBoiler) {
           // here wanna apply new forces to objects and things based on state
           scene.simulate(undefined, 1);
         });
+
+        scene.fog = new THREE.Fog(16777215, 1, 500);
 
         return scene;
       }
