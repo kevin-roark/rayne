@@ -3,6 +3,9 @@ let THREE = require('three');
 let $ = require('jquery');
 let Physijs = require('../lib/physi');
 let SPE = require('../lib/shader-particle-engine');
+
+var SheenMesh = require('../sheen-mesh');
+var geometryUtil = require('../geometry-util');
 import {GalleryLayout} from './gallery-layout.es6';
 
 export class RainRoom extends GalleryLayout {
@@ -31,6 +34,9 @@ export class RainRoom extends GalleryLayout {
       this.nextMediaToAddIndex = i + 1;
 
       this.setupRainParticleSystem();
+
+      this.ground = createGround(this.roomLength, this.yLevel - 10);
+      this.ground.addTo(this.container);
     }
     else {
       // DO DOM
@@ -155,4 +161,35 @@ export class RainRoom extends GalleryLayout {
     return this.createRaindrop(media, 40); // temp
   }
 
+}
+
+function createGround(length, y) {
+  return new SheenMesh({
+    meshCreator: (callback) => {
+      let geometry = new THREE.PlaneBufferGeometry(length, length);
+      geometryUtil.computeShit(geometry);
+
+      let rawMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide
+      });
+
+      // lets go high friction, low restitution
+      let material = Physijs.createMaterial(rawMaterial, 0.8, 0.4);
+
+      let mesh = new Physijs.BoxMesh(geometry, material, 0);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.__dirtyRotation = true;
+
+      mesh.receiveShadow = true;
+
+      callback(geometry, material, mesh);
+    },
+
+    position: new THREE.Vector3(0, y, 0),
+
+    collisionHandler: () => {
+
+    }
+  });
 }

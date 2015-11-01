@@ -506,6 +506,9 @@ var $ = require("jquery");
 var Physijs = require("../lib/physi");
 var SPE = require("../lib/shader-particle-engine");
 
+var SheenMesh = require("../sheen-mesh");
+var geometryUtil = require("../geometry-util");
+
 var GalleryLayout = require("./gallery-layout.es6").GalleryLayout;
 
 var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
@@ -535,6 +538,9 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
       this.nextMediaToAddIndex = i + 1;
 
       this.setupRainParticleSystem();
+
+      this.ground = createGround(this.roomLength, this.yLevel - 10);
+      this.ground.addTo(this.container);
     } else {}
   }
 
@@ -669,11 +675,40 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   return RainRoom;
 })(GalleryLayout);
 
-// DO DOM
+function createGround(length, y) {
+  return new SheenMesh({
+    meshCreator: function (callback) {
+      var geometry = new THREE.PlaneBufferGeometry(length, length);
+      geometryUtil.computeShit(geometry);
+
+      var rawMaterial = new THREE.MeshBasicMaterial({
+        color: 16777215,
+        side: THREE.DoubleSide
+      });
+
+      // lets go high friction, low restitution
+      var material = Physijs.createMaterial(rawMaterial, 0.8, 0.4);
+
+      var mesh = new Physijs.BoxMesh(geometry, material, 0);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.__dirtyRotation = true;
+
+      mesh.receiveShadow = true;
+
+      callback(geometry, material, mesh);
+    },
+
+    position: new THREE.Vector3(0, y, 0),
+
+    collisionHandler: function () {}
+  });
+}
 
 // DO DOM
 
-},{"../lib/physi":9,"../lib/shader-particle-engine":10,"./gallery-layout.es6":3,"jquery":17,"three":19}],5:[function(require,module,exports){
+// DO DOM
+
+},{"../geometry-util":6,"../lib/physi":9,"../lib/shader-particle-engine":10,"../sheen-mesh":13,"./gallery-layout.es6":3,"jquery":17,"three":19}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -708,9 +743,6 @@ var Gallery = exports.Gallery = (function () {
     };
 
     this.meshContainer = new THREE.Object3D();
-
-    //this.ground = createGround(500, this.yLevel);
-    //this.ground.addTo(this.meshContainer);
 
     this.scene.add(this.meshContainer);
   }
@@ -753,35 +785,6 @@ var Gallery = exports.Gallery = (function () {
 
   return Gallery;
 })();
-
-function createGround(length, y) {
-  return new SheenMesh({
-    meshCreator: function (callback) {
-      var geometry = new THREE.PlaneBufferGeometry(length, length);
-      geometryUtil.computeShit(geometry);
-
-      var rawMaterial = new THREE.MeshBasicMaterial({
-        color: 15658734,
-        side: THREE.DoubleSide
-      });
-
-      // lets go high friction, low restitution
-      var material = Physijs.createMaterial(rawMaterial, 0.8, 0.4);
-
-      var mesh = new Physijs.BoxMesh(geometry, material, 0);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.__dirtyRotation = true;
-
-      mesh.receiveShadow = true;
-
-      callback(geometry, material, mesh);
-    },
-
-    position: new THREE.Vector3(0, y, 0),
-
-    collisionHandler: function () {}
-  });
-}
 
 },{"./gallery-layouts/rainroom.es6":4,"./geometry-util":6,"./image-util":7,"./lib/physi.js":9,"./sheen-mesh":13,"jquery":17,"kutility":18,"three":19}],6:[function(require,module,exports){
 "use strict";
