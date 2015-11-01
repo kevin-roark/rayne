@@ -527,21 +527,21 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
     this.initialRainParticleY = options.initialRaindropY || 50;
+    this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
+    this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 20;
 
     this.hasStarted = false;
     this.emitters = [];
 
     if (!this.domMode) {
-      // perform initial layout
-      for (var i = 0; i < 100; i++) {
-        var media = this.media[i];
-        this.layoutMedia(i, media);
-      }
-      this.nextMediaToAddIndex = i + 1;
-
       this.setupRainParticleSystem();
 
-      this.ground = createGround(this.roomLength, this.yLevel);
+      this.ground = createGround(this.roomLength, this.yLevel, function (otherObject) {
+        // remove anything once it hits the ground
+        // TODO: would be cool to have a particle explosion at the point of impact lol
+        _this.container.remove(otherObject);
+      });
       this.ground.addTo(this.container);
 
       this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
@@ -560,6 +560,100 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   _inherits(RainRoom, _GalleryLayout);
 
   _createClass(RainRoom, {
+    start: {
+      value: function start() {
+        this.hasStarted = true;
+
+        if (this.domMode) {} else {
+          // set up the layout waterfall
+          this.nextMediaToAddIndex = 0;
+          this.layoutNextMedia();
+        }
+      }
+    },
+    update: {
+      value: function update(dt) {
+        _get(Object.getPrototypeOf(RainRoom.prototype), "update", this).call(this);
+
+        if (!this.hasStarted) {
+          return;
+        }
+
+        this.rainParticleGroup.tick(dt);
+
+        var nearDistance = this.spacePerEmitter / 1.5 * (this.spacePerEmitter / 1.5);
+
+        for (var i = 0; i < this.emitters.length; i++) {
+          var iEmitters = this.emitters[i];
+          for (var j = 0; j < iEmitters.length; j++) {
+            var emitter = iEmitters[j];
+            var controlBelowThisEmitter = this.controlObject.position.distanceToSquared(emitter.__position) < nearDistance;
+            emitter.opacity.value = controlBelowThisEmitter ? 0 : 1;
+          }
+        }
+      }
+    },
+    layoutNextMedia: {
+      value: function layoutNextMedia() {
+        var _this = this;
+
+        var media = this.media[this.nextMediaToAddIndex];
+        this.layoutMedia(this.nextMediaToAddIndex, media);
+        this.nextMediaToAddIndex += 1;
+
+        this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops * this.raindropTimeDecayRate);
+        console.log("new raindrop in: " + this.timeBetweenRaindrops);
+        setTimeout(function () {
+          _this.layoutNextMedia();
+        }, this.timeBetweenRaindrops);
+      }
+    },
+    layoutMedia: {
+      value: function layoutMedia(index, media) {
+        if (!media) {
+          return;
+        }
+
+        //console.log('laying out: ' + index);
+
+        var mesh = this.createRaindrop(media);
+
+        mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
+
+        this.container.add(mesh);
+      }
+    },
+    randomPointInRoom: {
+      value: function randomPointInRoom() {
+        return (Math.random() - 0.5) * this.roomLength;
+      }
+    },
+    createRaindrop: {
+      value: function createRaindrop(media) {
+        var radius = Math.round(Math.random() * 5 + 1);
+        var geometry = parametricGeometries.createRaindrop({ radius: radius });
+
+        var material = new THREE.MeshPhongMaterial({
+          map: this.createTexture(media),
+          side: THREE.DoubleSide,
+          shininess: 100,
+          transparent: true, opacity: Math.random() * 0.15 + 0.8, // opacity between 0.8 and 0.95
+          specular: 34013, // give off a bright blue light
+          wireframe: Math.random() > 0.95 // 5% of the time do a wireframe because, chill 3d computer
+        });
+        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+
+        var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 5); // geometry, material, "mass"
+        mesh.castShadow = true;
+
+        return mesh;
+      }
+    },
+    createGhost: {
+      value: function createGhost(media) {
+        return this.createRaindrop(media); // temp
+      }
+    },
     setupRainParticleSystem: {
       value: function setupRainParticleSystem() {
         var particlesPerEmitter = 666;
@@ -617,88 +711,13 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         this.container.add(this.rainParticleGroup.mesh);
       }
-    },
-    start: {
-      value: function start() {
-        this.hasStarted = true;
-
-        if (this.domMode) {}
-      }
-    },
-    update: {
-      value: function update(dt) {
-        _get(Object.getPrototypeOf(RainRoom.prototype), "update", this).call(this);
-
-        if (!this.hasStarted) {
-          return;
-        }
-
-        this.rainParticleGroup.tick(dt);
-
-        var nearDistance = this.spacePerEmitter / 1.5 * (this.spacePerEmitter / 1.5);
-
-        for (var i = 0; i < this.emitters.length; i++) {
-          var iEmitters = this.emitters[i];
-          for (var j = 0; j < iEmitters.length; j++) {
-            var emitter = iEmitters[j];
-            var controlBelowThisEmitter = this.controlObject.position.distanceToSquared(emitter.__position) < nearDistance;
-            emitter.opacity.value = controlBelowThisEmitter ? 0 : 1;
-          }
-        }
-      }
-    },
-    layoutMedia: {
-      value: function layoutMedia(index, media) {
-        if (!media) {
-          return;
-        }
-
-        //console.log('laying out: ' + index);
-
-        var mesh = this.createRaindrop(media);
-
-        mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
-
-        this.container.add(mesh);
-      }
-    },
-    randomPointInRoom: {
-      value: function randomPointInRoom() {
-        return (Math.random() - 0.5) * (this.roomLength / 2);
-      }
-    },
-    createRaindrop: {
-      value: function createRaindrop(media) {
-        var radius = Math.round(Math.random() * 5 + 1);
-        var geometry = parametricGeometries.createRaindrop({ radius: radius });
-
-        var material = new THREE.MeshPhongMaterial({
-          map: this.createTexture(media),
-          side: THREE.DoubleSide,
-          shininess: 100,
-          transparent: true, opacity: Math.random() * 0.15 + 0.8, // opacity between 0.8 and 0.95
-          specular: 34013, // give off a bright blue light
-          wireframe: Math.random() > 0.95 // 5% of the time do a wireframe because, chill 3d computer
-        });
-        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
-
-        var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 5); // geometry, material, "mass"
-        mesh.castShadow = true;
-
-        return mesh;
-      }
-    },
-    createGhost: {
-      value: function createGhost(media) {
-        return this.createRaindrop(media); // temp
-      }
     }
   });
 
   return RainRoom;
 })(GalleryLayout);
 
-function createGround(length, y) {
+function createGround(length, y, collisionHandler) {
   return new SheenMesh({
     meshCreator: function (callback) {
       var geometry = new THREE.PlaneBufferGeometry(length, length);
@@ -723,7 +742,7 @@ function createGround(length, y) {
 
     position: new THREE.Vector3(0, y, 0),
 
-    collisionHandler: function () {}
+    collisionHandler: collisionHandler
   });
 }
 
@@ -3321,7 +3340,7 @@ var Sheen = (function (_ThreeBoiler) {
       value: function createScene() {
         var scene = new Physijs.Scene();
 
-        scene.setGravity(new THREE.Vector3(0, -5, 0));
+        scene.setGravity(new THREE.Vector3(0, -30, 0));
 
         scene.addEventListener("update", function () {
           // here wanna apply new forces to objects and things based on state

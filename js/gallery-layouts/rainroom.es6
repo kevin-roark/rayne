@@ -21,21 +21,21 @@ export class RainRoom extends GalleryLayout {
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
     this.initialRainParticleY = options.initialRaindropY || 50;
+    this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
+    this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 20;
 
     this.hasStarted = false;
     this.emitters = [];
 
     if (!this.domMode) {
-      // perform initial layout
-      for (var i = 0; i < 100; i++) {
-        var media = this.media[i];
-        this.layoutMedia(i, media);
-      }
-      this.nextMediaToAddIndex = i + 1;
-
       this.setupRainParticleSystem();
 
-      this.ground = createGround(this.roomLength, this.yLevel);
+      this.ground = createGround(this.roomLength, this.yLevel, (otherObject) => {
+        // remove anything once it hits the ground
+        // TODO: would be cool to have a particle explosion at the point of impact lol
+        this.container.remove(otherObject);
+      });
       this.ground.addTo(this.container);
 
       this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
@@ -59,68 +59,16 @@ export class RainRoom extends GalleryLayout {
     }
   }
 
-  setupRainParticleSystem() {
-    var particlesPerEmitter = 666;
-
-    this.rainParticleGroup = new SPE.Group({
-      texture: {value: THREE.ImageUtils.loadTexture('/media/rain.png')},
-      maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
-      fog: true
-    });
-
-    this.dummyEmitter = new SPE.Emitter({
-      maxAge: {value: 0.5},
-  		position: {value: new THREE.Vector3(0, 0, -10)},
-      opacity: {value: 0},
-      size: {value: 0.1},
-  		particleCount: 1
-    });
-    this.rainParticleGroup.addEmitter(this.dummyEmitter);
-
-    for (var i = 0; i < this.emittersPerWall; i++) {
-      var iEmitters = [];
-      var x = -this.roomLength/2 + (i * this.spacePerEmitter);
-
-      for (var j = 0; j < this.emittersPerWall; j++) {
-        var z = -this.roomLength/2 + (j * this.spacePerEmitter);
-
-        var emitter = new SPE.Emitter({
-          maxAge: {value: 3},
-      		position: {
-            value: new THREE.Vector3(x, this.initialRainParticleY, z),
-            spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
-          },
-      		acceleration: {
-            value: new THREE.Vector3(0, -10, 0),
-            spread: new THREE.Vector3(0, 0, 0)
-          },
-      		velocity: {
-            value: new THREE.Vector3(0, -10, 0),
-            spread: new THREE.Vector3(1, 0, 1)
-          },
-          wiggle: {spread: 10},
-          rotation: {angleSpread: 1},
-          color: {value: [new THREE.Color(0x0000ff), new THREE.Color(0xffffff)]},
-          size: {value: 1, spread: 2},
-      		particleCount: particlesPerEmitter
-      	});
-        emitter.__position = new THREE.Vector3(x, 0, z);
-
-        iEmitters.push(emitter);
-        this.rainParticleGroup.addEmitter(emitter);
-      }
-
-      this.emitters.push(iEmitters);
-    }
-
-    this.container.add(this.rainParticleGroup.mesh);
-  }
-
   start() {
     this.hasStarted = true;
 
     if (this.domMode) {
       // DO DOM
+    }
+    else {
+      // set up the layout waterfall
+      this.nextMediaToAddIndex = 0;
+      this.layoutNextMedia();
     }
   }
 
@@ -145,6 +93,18 @@ export class RainRoom extends GalleryLayout {
     }
   }
 
+  layoutNextMedia() {
+    var media = this.media[this.nextMediaToAddIndex];
+    this.layoutMedia(this.nextMediaToAddIndex, media);
+    this.nextMediaToAddIndex += 1;
+
+    this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops * this.raindropTimeDecayRate);
+    console.log('new raindrop in: ' + this.timeBetweenRaindrops);
+    setTimeout(() => {
+      this.layoutNextMedia();
+    }, this.timeBetweenRaindrops);
+  }
+
   layoutMedia(index, media) {
     if (!media) {
       return;
@@ -160,7 +120,7 @@ export class RainRoom extends GalleryLayout {
   }
 
   randomPointInRoom() {
-    return (Math.random() - 0.5) * (this.roomLength / 2);
+    return (Math.random() - 0.5) * this.roomLength;
   }
 
   createRaindrop(media) {
@@ -187,9 +147,66 @@ export class RainRoom extends GalleryLayout {
     return this.createRaindrop(media); // temp
   }
 
+  setupRainParticleSystem() {
+    var particlesPerEmitter = 666;
+
+    this.rainParticleGroup = new SPE.Group({
+      texture: {value: THREE.ImageUtils.loadTexture('/media/rain.png')},
+      maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
+      fog: true
+    });
+
+    this.dummyEmitter = new SPE.Emitter({
+      maxAge: {value: 0.5},
+      position: {value: new THREE.Vector3(0, 0, -10)},
+      opacity: {value: 0},
+      size: {value: 0.1},
+      particleCount: 1
+    });
+    this.rainParticleGroup.addEmitter(this.dummyEmitter);
+
+    for (var i = 0; i < this.emittersPerWall; i++) {
+      var iEmitters = [];
+      var x = -this.roomLength/2 + (i * this.spacePerEmitter);
+
+      for (var j = 0; j < this.emittersPerWall; j++) {
+        var z = -this.roomLength/2 + (j * this.spacePerEmitter);
+
+        var emitter = new SPE.Emitter({
+          maxAge: {value: 3},
+          position: {
+            value: new THREE.Vector3(x, this.initialRainParticleY, z),
+            spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
+          },
+          acceleration: {
+            value: new THREE.Vector3(0, -10, 0),
+            spread: new THREE.Vector3(0, 0, 0)
+          },
+          velocity: {
+            value: new THREE.Vector3(0, -10, 0),
+            spread: new THREE.Vector3(1, 0, 1)
+          },
+          wiggle: {spread: 10},
+          rotation: {angleSpread: 1},
+          color: {value: [new THREE.Color(0x0000ff), new THREE.Color(0xffffff)]},
+          size: {value: 1, spread: 2},
+          particleCount: particlesPerEmitter
+        });
+        emitter.__position = new THREE.Vector3(x, 0, z);
+
+        iEmitters.push(emitter);
+        this.rainParticleGroup.addEmitter(emitter);
+      }
+
+      this.emitters.push(iEmitters);
+    }
+
+    this.container.add(this.rainParticleGroup.mesh);
+  }
+
 }
 
-function createGround(length, y) {
+function createGround(length, y, collisionHandler) {
   return new SheenMesh({
     meshCreator: (callback) => {
       let geometry = new THREE.PlaneBufferGeometry(length, length);
@@ -214,7 +231,7 @@ function createGround(length, y) {
 
     position: new THREE.Vector3(0, y, 0),
 
-    collisionHandler: () => {}
+    collisionHandler: collisionHandler
   });
 }
 
