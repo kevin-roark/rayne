@@ -11,8 +11,6 @@ import {GalleryLayout} from './gallery-layout.es6';
 
 /* TODO:
  * 1) maybe do hands
- * 2) rain on the screen
- * 3) tiny rain drops become bigger as time goes on, new geometries as time goes on
  * 4) GAMEIFICATION
  * 5) physical switch that flips when garbage is added
  */

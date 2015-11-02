@@ -1,8 +1,9 @@
 
 let THREE = require('three');
 let $ = require('jquery');
-let buzz = require('./lib/buzz.js');
+let buzz = require('./lib/buzz');
 let kt = require('kutility');
+let RainyDay = require('./lib/rainyday');
 
 import {SheenScene} from './sheen-scene.es6';
 import {Gallery} from './gallery.es6';
@@ -53,6 +54,19 @@ export class MainScene extends SheenScene {
     this.rayne.create(() => {
       this.galleryDidLoad();
     });
+
+    setTimeout(() => {
+      this.rainEngine = new RainyDay({
+        blur: null,
+        opacity: 0.67,
+        enableCollisions: true,
+        image: document.getElementById('rain-screen-background'),
+        showImage: false
+      });
+
+      // add 1 drop of size from 5 - 9, every 1000ms
+      this.rainEngine.rain([ [5, 4, 1] ], 1000);
+    }, 1000);
   }
 
   exit() {
