@@ -3,7 +3,7 @@ var THREE = require('three');
 
 var _cache = {};
 
-module.exports.createRaindrop = function _createRaindropGeometry(options) {
+module.exports.createRaindrop = function(options) {
   if (!options) options = {};
   var slices = options.slices || 12;
   var stacks = options.stacks || 12;
@@ -24,7 +24,7 @@ module.exports.createRaindrop = function _createRaindropGeometry(options) {
     var x = sc * Math.cos(phi);
     var z = sc * Math.sin(phi);
     var y = radius * Math.cos(theta);
-    
+
     return new THREE.Vector3(x, y, z);
   }
 
@@ -33,7 +33,7 @@ module.exports.createRaindrop = function _createRaindropGeometry(options) {
   return geometry;
 };
 
-module.exports.createCrumpledGarbage = function _createRaindropGeometry(options) {
+module.exports.createCrumpledGarbage = function(options) {
   if (!options) options = {};
   var slices = options.slices || 8;
   var stacks = options.stacks || 8;

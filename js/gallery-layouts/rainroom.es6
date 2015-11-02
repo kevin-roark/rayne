@@ -2,11 +2,20 @@
 let THREE = require('three');
 let Physijs = require('../lib/physi');
 let SPE = require('../lib/shader-particle-engine');
+let kt = require('kutility');
 
 var SheenMesh = require('../sheen-mesh');
 var geometryUtil = require('../geometry-util');
 var parametricGeometries = require('../parametric-geometries');
 import {GalleryLayout} from './gallery-layout.es6';
+
+/* TODO:
+ * 1) maybe do hands
+ * 2) rain on the screen
+ * 3) tiny rain drops become bigger as time goes on, new geometries as time goes on
+ * 4) GAMEIFICATION
+ * 5) physical switch that flips when garbage is added
+ */
 
 export class RainRoom extends GalleryLayout {
 
@@ -21,12 +30,18 @@ export class RainRoom extends GalleryLayout {
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
     this.initialRainParticleY = options.initialRaindropY || 100;
+    this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
+    this.raindropSizeVariance = options.raindropSizeVariance || 1;
+    this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0025;
+    this.raindropMaxRadius = options.raindropMaxRadius || 12;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 15;
+    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
 
     this.hasStarted = false;
     this.emitters = [];
+    this.canAddAlternativeMedia = false;
 
     if (!this.domMode) {
       this.setupRainParticleSystem();
@@ -34,7 +49,7 @@ export class RainRoom extends GalleryLayout {
       this.ground = createGround(this.roomLength, this.yLevel, (otherObject) => {
         // remove anything once it hits the ground
         // TODO: would be cool to have a particle explosion at the point of impact lol
-        this.container.remove(otherObject);
+        //this.container.remove(otherObject);
       });
       this.ground.addTo(this.container);
 
@@ -66,9 +81,15 @@ export class RainRoom extends GalleryLayout {
       // DO DOM
     }
     else {
-      // set up the layout waterfall
-      this.nextMediaToAddIndex = 0;
-      this.layoutNextMedia();
+      setTimeout(() => {
+        this.canAddAlternativeMedia = true;
+      }, this.timeToAddAlternativeMedia);
+
+      setTimeout(() => {
+        // set up the layout waterfall
+        this.nextMediaToAddIndex = 0;
+        this.layoutNextMedia();
+      }, this.initialRaindropTime);
     }
   }
 
@@ -112,9 +133,19 @@ export class RainRoom extends GalleryLayout {
 
     //console.log('laying out: ' + index);
 
-    var mesh = this.createRaindrop(media);
-
-    mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
+    var mesh;
+    if (!this.canAddAlternativeMedia || Math.random() < 0.5) {
+      mesh = this.createRaindrop(media);
+      mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
+    }
+    else {
+      var creators = [
+        () => { return this.createGarbage(media); },
+        () => { return this.createBox(media); }
+      ];
+      mesh = kt.choice(creators)();
+      mesh.position.set(this.randomPointInRoom(), this.initialRaindropY / 2, this.randomPointInRoom());
+    }
 
     this.container.add(mesh);
   }
@@ -124,17 +155,13 @@ export class RainRoom extends GalleryLayout {
   }
 
   createRaindrop(media) {
-    var radius = Math.round(Math.random() * 5 + 1);
+    var radius = Math.min(this.raindropMaxRadius, Math.round(Math.random() * this.raindropSizeVariance + 2));
+    this.raindropSizeVariance *= this.raindropSizeVarianceGrowthRate;
+
     var geometry = parametricGeometries.createRaindrop({radius: radius});
 
-    var material = new THREE.MeshPhongMaterial({
-      map: this.createTexture(media),
-      side: THREE.DoubleSide,
-      shininess: 100,
-      transparent: true, opacity: Math.random() * 0.15 + 0.8, // opacity between 0.8 and 0.95
-      specular: 0x0084dd, // give off a bright blue light
-      wireframe: Math.random() > 0.95 // 5% of the time do a wireframe because, chill 3d computer
-    });
+    var material = this.createRainMaterial(media);
+    material.opacity = Math.random() * 0.15 + 0.8; // opacity between 0.8 and 0.95
     var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
 
     var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
@@ -143,8 +170,41 @@ export class RainRoom extends GalleryLayout {
     return mesh;
   }
 
-  createGhost(media) {
-    return this.createRaindrop(media); // temp
+  createGarbage(media) {
+    var length = Math.round(Math.random() * 6 + 2);
+    var geometry = parametricGeometries.createCrumpledGarbage({radius: length});
+
+    var material = this.createRainMaterial(media);
+    material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
+    var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+
+    var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
+    mesh.castShadow = true;
+
+    return mesh;
+  }
+
+  createBox(media) {
+    var length = Math.round(Math.random() * 6 + 2);
+    var geometry = new THREE.BoxGeometry(length, length * 0.75, 0.1);
+
+    var material = this.createRainMaterial(media);
+    material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
+    var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+
+    var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
+    mesh.castShadow = true;
+
+    return mesh;
+  }
+
+  createRainMaterial(media) {
+    return new THREE.MeshPhongMaterial({
+      map: this.createTexture(media),
+      side: THREE.DoubleSide,
+      shininess: 100,
+      transparent: true
+    });
   }
 
   setupRainParticleSystem() {
@@ -173,7 +233,7 @@ export class RainRoom extends GalleryLayout {
         var z = -this.roomLength/2 + (j * this.spacePerEmitter);
 
         var emitter = new SPE.Emitter({
-          maxAge: {value: 3},
+          maxAge: {value: 2.6},
           position: {
             value: new THREE.Vector3(x, this.initialRainParticleY, z),
             spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
@@ -212,8 +272,8 @@ function createGround(length, y, collisionHandler) {
       let geometry = new THREE.PlaneBufferGeometry(length, length);
       geometryUtil.computeShit(geometry);
 
-      let rawMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
+      let rawMaterial = new THREE.MeshPhongMaterial({
+        color: 0x101010,
         side: THREE.DoubleSide
       });
 
@@ -281,8 +341,8 @@ function createWall(options) {
 
       geometryUtil.computeShit(geometry);
 
-      let rawMaterial = new THREE.MeshBasicMaterial({
-        color: 0x111111,
+      let rawMaterial = new THREE.MeshPhongMaterial({
+        color: 0x101010,
         side: THREE.DoubleSide
       });
 

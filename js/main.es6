@@ -70,7 +70,7 @@ class Sheen extends ThreeBoiler {
       scene.simulate(undefined, 1);
     });
 
-    scene.fog = new THREE.Fog(0xffffff, 1, 500);
+    scene.fog = new THREE.Fog(0x111111, 1, 400);
 
     return scene;
   }

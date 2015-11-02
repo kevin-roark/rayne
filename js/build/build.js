@@ -529,12 +529,21 @@ Object.defineProperty(exports, "__esModule", {
 var THREE = require("three");
 var Physijs = require("../lib/physi");
 var SPE = require("../lib/shader-particle-engine");
+var kt = require("kutility");
 
 var SheenMesh = require("../sheen-mesh");
 var geometryUtil = require("../geometry-util");
 var parametricGeometries = require("../parametric-geometries");
 
 var GalleryLayout = require("./gallery-layout.es6").GalleryLayout;
+
+/* TODO:
+ * 1) maybe do hands
+ * 2) rain on the screen
+ * 3) tiny rain drops become bigger as time goes on, new geometries as time goes on
+ * 4) GAMEIFICATION
+ * 5) physical switch that flips when garbage is added
+ */
 
 var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   function RainRoom(options) {
@@ -552,21 +561,23 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
     this.initialRainParticleY = options.initialRaindropY || 100;
+    this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
+    this.raindropSizeVariance = options.raindropSizeVariance || 1;
+    this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0025;
+    this.raindropMaxRadius = options.raindropMaxRadius || 12;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 15;
+    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
 
     this.hasStarted = false;
     this.emitters = [];
+    this.canAddAlternativeMedia = false;
 
     if (!this.domMode) {
       this.setupRainParticleSystem();
 
-      this.ground = createGround(this.roomLength, this.yLevel, function (otherObject) {
-        // remove anything once it hits the ground
-        // TODO: would be cool to have a particle explosion at the point of impact lol
-        _this.container.remove(otherObject);
-      });
+      this.ground = createGround(this.roomLength, this.yLevel, function (otherObject) {});
       this.ground.addTo(this.container);
 
       this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
@@ -587,12 +598,20 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   _createClass(RainRoom, {
     start: {
       value: function start() {
+        var _this = this;
+
         this.hasStarted = true;
 
         if (this.domMode) {} else {
-          // set up the layout waterfall
-          this.nextMediaToAddIndex = 0;
-          this.layoutNextMedia();
+          setTimeout(function () {
+            _this.canAddAlternativeMedia = true;
+          }, this.timeToAddAlternativeMedia);
+
+          setTimeout(function () {
+            // set up the layout waterfall
+            _this.nextMediaToAddIndex = 0;
+            _this.layoutNextMedia();
+          }, this.initialRaindropTime);
         }
       }
     },
@@ -635,15 +654,27 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     layoutMedia: {
       value: function layoutMedia(index, media) {
+        var _this = this;
+
         if (!media) {
           return;
         }
 
         //console.log('laying out: ' + index);
 
-        var mesh = this.createRaindrop(media);
-
-        mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
+        var mesh;
+        if (!this.canAddAlternativeMedia || Math.random() < 0.5) {
+          mesh = this.createRaindrop(media);
+          mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
+        } else {
+          var creators = [function () {
+            return _this.createGarbage(media);
+          }, function () {
+            return _this.createBox(media);
+          }];
+          mesh = kt.choice(creators)();
+          mesh.position.set(this.randomPointInRoom(), this.initialRaindropY / 2, this.randomPointInRoom());
+        }
 
         this.container.add(mesh);
       }
@@ -655,17 +686,13 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     createRaindrop: {
       value: function createRaindrop(media) {
-        var radius = Math.round(Math.random() * 5 + 1);
+        var radius = Math.min(this.raindropMaxRadius, Math.round(Math.random() * this.raindropSizeVariance + 2));
+        this.raindropSizeVariance *= this.raindropSizeVarianceGrowthRate;
+
         var geometry = parametricGeometries.createRaindrop({ radius: radius });
 
-        var material = new THREE.MeshPhongMaterial({
-          map: this.createTexture(media),
-          side: THREE.DoubleSide,
-          shininess: 100,
-          transparent: true, opacity: Math.random() * 0.15 + 0.8, // opacity between 0.8 and 0.95
-          specular: 34013, // give off a bright blue light
-          wireframe: Math.random() > 0.95 // 5% of the time do a wireframe because, chill 3d computer
-        });
+        var material = this.createRainMaterial(media);
+        material.opacity = Math.random() * 0.15 + 0.8; // opacity between 0.8 and 0.95
         var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
@@ -674,9 +701,44 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         return mesh;
       }
     },
-    createGhost: {
-      value: function createGhost(media) {
-        return this.createRaindrop(media); // temp
+    createGarbage: {
+      value: function createGarbage(media) {
+        var length = Math.round(Math.random() * 6 + 2);
+        var geometry = parametricGeometries.createCrumpledGarbage({ radius: length });
+
+        var material = this.createRainMaterial(media);
+        material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
+        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+
+        var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
+        mesh.castShadow = true;
+
+        return mesh;
+      }
+    },
+    createBox: {
+      value: function createBox(media) {
+        var length = Math.round(Math.random() * 6 + 2);
+        var geometry = new THREE.BoxGeometry(length, length * 0.75, 0.1);
+
+        var material = this.createRainMaterial(media);
+        material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
+        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+
+        var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
+        mesh.castShadow = true;
+
+        return mesh;
+      }
+    },
+    createRainMaterial: {
+      value: function createRainMaterial(media) {
+        return new THREE.MeshPhongMaterial({
+          map: this.createTexture(media),
+          side: THREE.DoubleSide,
+          shininess: 100,
+          transparent: true
+        });
       }
     },
     setupRainParticleSystem: {
@@ -706,7 +768,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             var z = -this.roomLength / 2 + j * this.spacePerEmitter;
 
             var emitter = new SPE.Emitter({
-              maxAge: { value: 3 },
+              maxAge: { value: 2.6 },
               position: {
                 value: new THREE.Vector3(x, this.initialRainParticleY, z),
                 spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
@@ -748,8 +810,8 @@ function createGround(length, y, collisionHandler) {
       var geometry = new THREE.PlaneBufferGeometry(length, length);
       geometryUtil.computeShit(geometry);
 
-      var rawMaterial = new THREE.MeshBasicMaterial({
-        color: 16777215,
+      var rawMaterial = new THREE.MeshPhongMaterial({
+        color: 1052688,
         side: THREE.DoubleSide
       });
 
@@ -817,8 +879,8 @@ function createWall(options) {
 
       geometryUtil.computeShit(geometry);
 
-      var rawMaterial = new THREE.MeshBasicMaterial({
-        color: 1118481,
+      var rawMaterial = new THREE.MeshPhongMaterial({
+        color: 1052688,
         side: THREE.DoubleSide
       });
 
@@ -836,11 +898,15 @@ function createWall(options) {
   });
 }
 
-// DO DOM
+// remove anything once it hits the ground
+// TODO: would be cool to have a particle explosion at the point of impact lol
+//this.container.remove(otherObject);
 
 // DO DOM
 
-},{"../geometry-util":6,"../lib/physi":9,"../lib/shader-particle-engine":10,"../parametric-geometries":13,"../sheen-mesh":14,"./gallery-layout.es6":3,"three":20}],5:[function(require,module,exports){
+// DO DOM
+
+},{"../geometry-util":6,"../lib/physi":9,"../lib/shader-particle-engine":10,"../parametric-geometries":13,"../sheen-mesh":14,"./gallery-layout.es6":3,"kutility":19,"three":20}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -3255,10 +3321,11 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         this.rightLight.position.set(200, 75, -45);
         this.rightLight.shadowDarkness = 0.05;
 
-        this.spotLight = new THREE.SpotLight(16711680);
-        this.spotLight.position.set(0, 200, -20);
+        this.spotLight = new THREE.SpotLight(16777215, 5, 200, 20, 20); // distance, angle, exponent, decay
+        this.spotLight.position.set(0, 150, 0);
         setupShadow(this.spotLight);
-        this.spotLight.shadowCameraFov = 30;
+        this.spotLight.shadowCameraFov = 20;
+        this.spotLight.shadowCameraNear = 1;
         container.add(this.spotLight);
 
         this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight, this.spotLight];
@@ -3267,13 +3334,13 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
           var light = new THREE.DirectionalLight(16777215, 0.25);
           light.color.setHSL(0.1, 1, 0.95);
 
-          container.add(light);
+          //container.add(light);
           return light;
         }
 
         function setupShadow(light) {
           light.castShadow = true;
-          light.shadowCameraFar = 500;
+          //light.shadowCameraFar = 500;
           light.shadowDarkness = 0.6;
           light.shadowMapWidth = light.shadowMapHeight = 2048;
         }
@@ -3375,7 +3442,7 @@ var Sheen = (function (_ThreeBoiler) {
           scene.simulate(undefined, 1);
         });
 
-        scene.fog = new THREE.Fog(16777215, 1, 500);
+        scene.fog = new THREE.Fog(1118481, 1, 400);
 
         return scene;
       }
@@ -3438,7 +3505,7 @@ var THREE = require("three");
 
 var _cache = {};
 
-module.exports.createRaindrop = function _createRaindropGeometry(options) {
+module.exports.createRaindrop = function (options) {
   if (!options) options = {};
   var slices = options.slices || 12;
   var stacks = options.stacks || 12;
@@ -3468,7 +3535,7 @@ module.exports.createRaindrop = function _createRaindropGeometry(options) {
   return geometry;
 };
 
-module.exports.createCrumpledGarbage = function _createRaindropGeometry(options) {
+module.exports.createCrumpledGarbage = function (options) {
   if (!options) options = {};
   var slices = options.slices || 8;
   var stacks = options.stacks || 8;
