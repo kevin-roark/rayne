@@ -583,11 +583,14 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.maxGhostLength = options.maxGhostLength || 18;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
+    this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
     this.numActiveMeshes = options.numActiveMeshes || 500;
 
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
+    this.nextWallToUpdateIndex = 0;
+    this.lastWallUpdateTime = 0;
     this.scorekeeper = new ScoreKeeper();
     this.rainCollisionSet = {};
     this.activeMeshes = [];
@@ -609,7 +612,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
       this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
       this.ceiling.addTo(this.container);
 
-      this.walls = [createWall({ direction: "left", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "right", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "front", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "back", roomLength: this.roomLength, wallHeight: this.roomLength })];
+      this.walls = [createWall({ direction: "back", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "left", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "right", roomLength: this.roomLength, wallHeight: this.roomLength }), createWall({ direction: "front", roomLength: this.roomLength, wallHeight: this.roomLength })];
       this.walls.forEach(function (wall) {
         wall.addTo(_this.container);
       });
@@ -667,10 +670,19 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
       value: function layoutNextMedia() {
         var _this = this;
 
+        // layout media
         var media = this.media[this.nextMediaToAddIndex];
         this.layoutMedia(this.nextMediaToAddIndex, media);
         this.nextMediaToAddIndex += 1;
 
+        // do wall update
+        var now = new Date();
+        if (now - this.lastWallUpdateTime > this.timeBetweenWallUpdates) {
+          this.updateCurrentWall(media);
+          this.lastWallUpdateTime = now;
+        }
+
+        // set up next media layout
         this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops * this.raindropTimeDecayRate);
         console.log("new raindrop in: " + this.timeBetweenRaindrops);
         setTimeout(function () {
@@ -715,6 +727,24 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     randomPointInRoom: {
       value: function randomPointInRoom() {
         return (Math.random() - 0.5) * this.roomLength;
+      }
+    },
+    updateCurrentWall: {
+      value: function updateCurrentWall(media) {
+        var wall = this.walls[this.nextWallToUpdateIndex];
+        if (wall.mesh.material.map) {
+          wall.mesh.material.map = this.createTexture(media);
+          wall.mesh.material.needsUpdate = true;
+        } else {
+          wall.mesh.material = this.createRainMaterial(media);
+          wall.mesh.material.opacity = 0.84;
+          wall.mesh.needsUpdate = true;
+        }
+
+        this.nextWallToUpdateIndex += 1;
+        if (this.nextWallToUpdateIndex >= this.walls.length) {
+          this.nextWallToUpdateIndex = 0;
+        }
       }
     },
     createRaindrop: {
@@ -783,7 +813,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     setupRainParticleSystem: {
       value: function setupRainParticleSystem() {
-        var particlesPerEmitter = 500;
+        var particlesPerEmitter = 450;
 
         this.rainParticleGroup = new SPE.Group({
           texture: { value: THREE.ImageUtils.loadTexture("/media/rain.png") },
