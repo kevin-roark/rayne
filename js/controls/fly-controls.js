@@ -40,6 +40,8 @@ module.exports = function (camera, options) {
 	this.keysAsRotation = options.keysAsRotation || false;
 
 	this.allowYMovement = options.allowYMovement || false;
+	this.restrictedXRange = options.restrictedXRange || null;
+	this.restrictedZRange = options.restrictedZRange || null;
 
 	this.enabled = false;
 
@@ -267,10 +269,18 @@ module.exports = function (camera, options) {
 			var moveMult = delta * this.movementSpeed * this.movementSpeedMultiplier;
 			var rotMult = delta * this.rollSpeed;
 
-			yawObject.translateX( this.moveVector.x * moveMult );
+			yawObject.translateX(this.moveVector.x * moveMult);
+			if (this.restrictedXRange) {
+				yawObject.position.x = clamp(yawObject.position.x, this.restrictedXRange.min, this.restrictedXRange.max);
+			}
+
+			yawObject.translateZ(this.moveVector.z * moveMult);
+			if (this.restrictedZRange) {
+				yawObject.position.z = clamp(yawObject.position.z, this.restrictedZRange.min, this.restrictedZRange.max);
+			}
 
 			if (this.allowYMovement) {
-				yawObject.translateY( this.moveVector.y * moveMult );
+				yawObject.translateY(this.moveVector.y * moveMult);
 			}
 			else if (this.jumpEnabled) {
 				this.jumpVelocity -= (9.8 * this.mass * delta);
@@ -283,8 +293,6 @@ module.exports = function (camera, options) {
 					this.canJump = true;
 				}
 			}
-
-			yawObject.translateZ( this.moveVector.z * moveMult );
 
 			if (this.keysAsRotation) {
 				yawObject.rotateX(this.rotationVector.x * rotMult);
@@ -329,6 +337,10 @@ module.exports = function (camera, options) {
 		return function () {
 			fn.apply( scope, arguments );
 		};
+	}
+
+	function clamp(num, min, max) {
+		return Math.min(Math.max(num, min), max);
 	}
 
 	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );

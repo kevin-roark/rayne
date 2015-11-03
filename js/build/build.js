@@ -43,6 +43,8 @@ module.exports = function (camera, options) {
 	this.keysAsRotation = options.keysAsRotation || false;
 
 	this.allowYMovement = options.allowYMovement || false;
+	this.restrictedXRange = options.restrictedXRange || null;
+	this.restrictedZRange = options.restrictedZRange || null;
 
 	this.enabled = false;
 
@@ -302,6 +304,14 @@ module.exports = function (camera, options) {
 			var rotMult = delta * this.rollSpeed;
 
 			yawObject.translateX(this.moveVector.x * moveMult);
+			if (this.restrictedXRange) {
+				yawObject.position.x = clamp(yawObject.position.x, this.restrictedXRange.min, this.restrictedXRange.max);
+			}
+
+			yawObject.translateZ(this.moveVector.z * moveMult);
+			if (this.restrictedZRange) {
+				yawObject.position.z = clamp(yawObject.position.z, this.restrictedZRange.min, this.restrictedZRange.max);
+			}
 
 			if (this.allowYMovement) {
 				yawObject.translateY(this.moveVector.y * moveMult);
@@ -316,8 +326,6 @@ module.exports = function (camera, options) {
 					this.canJump = true;
 				}
 			}
-
-			yawObject.translateZ(this.moveVector.z * moveMult);
 
 			if (this.keysAsRotation) {
 				yawObject.rotateX(this.rotationVector.x * rotMult);
@@ -362,6 +370,10 @@ module.exports = function (camera, options) {
 		return function () {
 			fn.apply(scope, arguments);
 		};
+	}
+
+	function clamp(num, min, max) {
+		return Math.min(Math.max(num, min), max);
 	}
 
 	this.domElement.addEventListener("contextmenu", function (event) {
@@ -4387,7 +4399,9 @@ var Sheen = (function (_ThreeBoiler) {
 
     this.controls = new FlyControls(this.camera, {
       allowYMovement: false,
-      movementSpeed: 15
+      movementSpeed: 15,
+      restrictedXRange: { min: -145, max: 145 },
+      restrictedZRange: { min: -145, max: 145 }
     });
     this.scene.add(this.controls.getObject());
 
