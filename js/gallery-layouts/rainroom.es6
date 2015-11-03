@@ -32,16 +32,18 @@ export class RainRoom extends GalleryLayout {
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.raindropSizeVariance = options.raindropSizeVariance || 1;
-    this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0025;
-    this.raindropMaxRadius = options.raindropMaxRadius || 12;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 15;
+    this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0028;
+    this.raindropMaxRadius = options.raindropMaxRadius || 15;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
+    this.numActiveMeshes = options.numActiveMeshes || 666;
 
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
     this.scorekeeper = new ScoreKeeper();
     this.rainCollisionSet = {};
+    this.activeMeshes = [];
 
     if (!this.domMode) {
       this.setupRainParticleSystem();
@@ -152,6 +154,13 @@ export class RainRoom extends GalleryLayout {
     }
 
     this.container.add(mesh);
+
+    // #PerfMatters
+    this.activeMeshes.push(mesh);
+    if (this.activeMeshes.length > this.numActiveMeshes) {
+      var deadMesh = this.activeMeshes.shift();
+      this.container.remove(deadMesh);
+    }
   }
 
   randomPointInRoom() {
@@ -165,7 +174,7 @@ export class RainRoom extends GalleryLayout {
     var geometry = parametricGeometries.createRaindrop({radius: radius});
 
     var material = this.createRainMaterial(media);
-    material.opacity = Math.random() * 0.15 + 0.8; // opacity between 0.8 and 0.95
+    material.opacity = Math.random() * 0.25 + 0.7; // opacity between 0.7 and 0.95
     var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
 
     var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
