@@ -736,8 +736,10 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           wall.mesh.material.map = this.createTexture(media);
           wall.mesh.material.needsUpdate = true;
         } else {
-          wall.mesh.material = new THREE.MeshLambertMaterial({
+
+          wall.mesh.material = new THREE.MeshPhongMaterial({
             map: this.createTexture(media),
+            bumpMap: skindisp,
             side: THREE.DoubleSide });
           wall.mesh.needsUpdate = true;
         }
@@ -804,8 +806,10 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     createRainMaterial: {
       value: function createRainMaterial(media) {
+
         return new THREE.MeshPhongMaterial({
           map: this.createTexture(media),
+          bumpMap: skindisp,
           side: THREE.DoubleSide,
           shininess: 100,
           transparent: true
@@ -875,6 +879,16 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   return RainRoom;
 })(GalleryLayout);
 
+var styromap = THREE.ImageUtils.loadTexture("/media/styrofoam-disp.png");
+styromap.wrapS = THREE.RepeatWrapping;
+styromap.wrapT = THREE.RepeatWrapping;
+styromap.repeat.set(20, 20);
+
+var skindisp = THREE.ImageUtils.loadTexture("/media/skindisp.png");
+skindisp.wrapS = THREE.RepeatWrapping;
+skindisp.wrapT = THREE.RepeatWrapping;
+skindisp.repeat.set(100, 100);
+
 function createGround(length, y, collisionHandler) {
   return new SheenMesh({
     meshCreator: function (callback) {
@@ -884,7 +898,10 @@ function createGround(length, y, collisionHandler) {
       groundTexture.wrapS = THREE.RepeatWrapping;
       groundTexture.wrapT = THREE.RepeatWrapping;
       groundTexture.repeat.set(20, 20);
+
       var rawMaterial = new THREE.MeshPhongMaterial({
+        bumpMap: skindisp,
+        bumpScale: 0.7,
         map: groundTexture,
         color: 1052688,
         side: THREE.DoubleSide
