@@ -32,18 +32,18 @@ export class RainRoom extends GalleryLayout {
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRaindropTime = options.initialRaindropTime || 3000;
-    this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
-    this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
+    this.initialRaindropTime = options.initialRaindropTime || 5000;
+    this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
+    this.timeBetweenRaindropsDecrement = options.timeBetweenRaindropsDecrement || 30; // number of ms to deceremnt time between raindrops on every rain fall
     this.raindropSizeVariance = options.raindropSizeVariance || 1;
-    this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0028;
+    this.raindropSizeVarianceIncrement = options.raindropSizeVarianceIncrement || 0.035; // number of "space units" to increment raindrop size variance each time raindrop is createed
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 250;
 
     // ghost / trash / alternative media config
-    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
+    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 140 * 1000;
     this.ghostSizeVariance = options.ghostSizeVariance || 6;
-    this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
+    this.ghostSizeVarianceIncrement = options.ghostSizeVarianceIncrement || 0.05; // number of "space units" to increment ghost size variance each time ghost is created
     this.maxGhostLength = options.maxGhostLength || 18;
 
     // wall update config
@@ -161,7 +161,7 @@ export class RainRoom extends GalleryLayout {
     }
 
     // set up next media layout
-    this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops * this.raindropTimeDecayRate);
+    this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops - this.timeBetweenRaindropsDecrement);
     console.log('new raindrop in: ' + this.timeBetweenRaindrops);
     setTimeout(() => {
       this.layoutNextMedia();
@@ -176,7 +176,7 @@ export class RainRoom extends GalleryLayout {
     //console.log('laying out: ' + index);
 
     var mesh;
-    if (!this.canAddAlternativeMedia || Math.random() < 0.5) {
+    if (!this.canAddAlternativeMedia || Math.random() < 0.67) { // raindrops 2/3 of the time
       mesh = this.createRaindrop(media);
       mesh.position.set(this.randomPointInRoom(), this.initialRaindropY, this.randomPointInRoom());
     }
@@ -210,7 +210,6 @@ export class RainRoom extends GalleryLayout {
       wall.mesh.material.needsUpdate = true;
     }
     else {
-
       wall.mesh.material = new THREE.MeshPhongMaterial({
         map: this.createTexture(media),
         bumpMap: skindisp,
@@ -227,7 +226,8 @@ export class RainRoom extends GalleryLayout {
 
   createRaindrop(media) {
     var radius = Math.min(this.raindropMaxRadius, Math.round(Math.random() * this.raindropSizeVariance + 2));
-    this.raindropSizeVariance *= this.raindropSizeVarianceGrowthRate;
+    this.raindropSizeVariance += this.raindropSizeVarianceIncrement;
+    console.log('raindrop size variance: ' + this.raindropSizeVariance);
 
     var geometry = parametricGeometries.createRaindrop({radius: radius});
 
@@ -244,11 +244,11 @@ export class RainRoom extends GalleryLayout {
 
   createGarbage(media) {
     var length = Math.min(this.maxGhostLength, Math.round(Math.random() * this.ghostSizeVariance + 2));
-    this.ghostSizeVariance *= this.ghostSizeVarianceGrowthRate;
+    this.ghostSizeVariance += this.ghostSizeVarianceIncrement;
 
     var geometry = parametricGeometries.createCrumpledGarbage({radius: length});
 
-    var material = this.createRainMaterial(media);
+    var material = this.createRainMaterial(media, skindisp);
     material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
     var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.5); // material, "friction", "restitution"
 
@@ -265,7 +265,7 @@ export class RainRoom extends GalleryLayout {
 
     var geometry = new THREE.BoxGeometry(length, length * 0.75, 0.1);
 
-    var material = this.createRainMaterial(media);
+    var material = this.createRainMaterial(media, skindisp);
     material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
     var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.4); // material, "friction", "restitution"
 
@@ -276,11 +276,10 @@ export class RainRoom extends GalleryLayout {
     return mesh;
   }
 
-  createRainMaterial(media) {
-
+  createRainMaterial(media, bumpMap) {
     return new THREE.MeshPhongMaterial({
       map: this.createTexture(media),
-      bumpMap: skindisp,
+      bumpMap: bumpMap ? bumpMap : null,
       side: THREE.DoubleSide,
       shininess: 100,
       transparent: true
@@ -289,8 +288,6 @@ export class RainRoom extends GalleryLayout {
 
   setupRainParticleSystem() {
     var particlesPerEmitter = 450;
-
-
 
     this.rainParticleGroup = new SPE.Group({
       texture: {value: THREE.ImageUtils.loadTexture('/media/rain.png')},
