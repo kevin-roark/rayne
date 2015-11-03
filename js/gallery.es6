@@ -25,7 +25,7 @@ export class Gallery {
   }
 
   create(callback) {
-    var filename = '/media/dz_media.json';
+    var filename = '/media/rayne_media.json';
     $.getJSON(filename, (data) => {
       this.layout = this.layoutCreator({
         domMode: this.domMode,

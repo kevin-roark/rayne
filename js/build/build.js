@@ -948,7 +948,7 @@ var Gallery = exports.Gallery = (function () {
       value: function create(callback) {
         var _this = this;
 
-        var filename = "/media/dz_media.json";
+        var filename = "/media/rayne_media.json";
         $.getJSON(filename, function (data) {
           _this.layout = _this.layoutCreator({
             domMode: _this.domMode,
