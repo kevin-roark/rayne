@@ -379,7 +379,7 @@ module.exports = function (camera, options) {
 	this.updateRotationVector();
 };
 
-},{"./pointerlocker":2,"three":21}],2:[function(require,module,exports){
+},{"./pointerlocker":2,"three":23}],2:[function(require,module,exports){
 "use strict";
 
 module.exports = function () {
@@ -511,7 +511,7 @@ var GalleryLayout = exports.GalleryLayout = (function () {
 
 // override this
 
-},{"../image-util":7,"three":21}],4:[function(require,module,exports){
+},{"../image-util":7,"three":23}],4:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -537,9 +537,10 @@ var parametricGeometries = require("../parametric-geometries");
 
 var GalleryLayout = require("./gallery-layout.es6").GalleryLayout;
 
+var ScoreKeeper = require("../scorekeeper.es6").ScoreKeeper;
+
 /* TODO:
  * 1) maybe do hands
- * 4) GAMEIFICATION
  * 5) physical switch that flips when garbage is added
  */
 
@@ -571,11 +572,21 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
+    this.scorekeeper = new ScoreKeeper();
+    this.rainCollisionSet = {};
 
     if (!this.domMode) {
       this.setupRainParticleSystem();
 
-      this.ground = createGround(this.roomLength, this.yLevel, function (otherObject) {});
+      this.ground = createGround(this.roomLength, this.yLevel, function (otherObject) {
+        //this.container.remove(otherObject);
+
+        // only add score if this is the first time object hits ground
+        if (otherObject._media && !_this.rainCollisionSet[otherObject._media.id]) {
+          _this.scorekeeper.addScore(1);
+          _this.rainCollisionSet[otherObject._media.id] = true;
+        }
+      });
       this.ground.addTo(this.container);
 
       this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
@@ -695,6 +706,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
+        mesh._media = media;
 
         return mesh;
       }
@@ -710,6 +722,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
+        mesh._media = media;
 
         return mesh;
       }
@@ -725,6 +738,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
+        mesh._media = media;
 
         return mesh;
       }
@@ -896,15 +910,11 @@ function createWall(options) {
   });
 }
 
-// remove anything once it hits the ground
-// TODO: would be cool to have a particle explosion at the point of impact lol
-//this.container.remove(otherObject);
-
 // DO DOM
 
 // DO DOM
 
-},{"../geometry-util":6,"../lib/physi":9,"../lib/shader-particle-engine":11,"../parametric-geometries":14,"../sheen-mesh":15,"./gallery-layout.es6":3,"kutility":20,"three":21}],5:[function(require,module,exports){
+},{"../geometry-util":6,"../lib/physi":9,"../lib/shader-particle-engine":11,"../parametric-geometries":14,"../scorekeeper.es6":15,"../sheen-mesh":16,"./gallery-layout.es6":3,"kutility":21,"three":23}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -977,7 +987,7 @@ var Gallery = exports.Gallery = (function () {
   return Gallery;
 })();
 
-},{"./gallery-layouts/rainroom.es6":4,"jquery":19,"three":21}],6:[function(require,module,exports){
+},{"./gallery-layouts/rainroom.es6":4,"jquery":20,"three":23}],6:[function(require,module,exports){
 "use strict";
 
 module.exports.computeShit = function (geometry) {
@@ -1022,7 +1032,7 @@ var corsPath = function corsPath(path) {
   return "http://crossorigin.me/" + path; // add cors headers, thank you!
 };
 
-},{"three":21}],8:[function(require,module,exports){
+},{"three":23}],8:[function(require,module,exports){
 // ----------------------------------------------------------------------------
 // Buzz, a Javascript HTML5 Audio library
 // v1.1.10 - Built 2015-04-20 13:05
@@ -3088,7 +3098,7 @@ module.exports = (function () {
 	return Physijs;
 })();
 
-},{"three":21}],10:[function(require,module,exports){
+},{"three":23}],10:[function(require,module,exports){
 
 /// Original Author: https://github.com/maroslaw/rainyday.js
 /// Modified by Kevin Roark to work without showing image itself
@@ -4057,7 +4067,7 @@ DropItem.prototype.remove = function (drop) {
 },{}],11:[function(require,module,exports){
 "use strict";var THREE=require("three");var SPE={distributions:{BOX:1, SPHERE:2, DISC:3}, valueOverLifetimeLength:4};if(typeof define === "function" && define.amd){define("spe", SPE);}else if(typeof exports !== "undefined" && typeof module !== "undefined"){module.exports = SPE;}SPE.TypedArrayHelper = function(TypedArrayConstructor, size, componentSize, indexOffset){"use strict";this.componentSize = componentSize || 1;this.size = size || 1;this.TypedArrayConstructor = TypedArrayConstructor || Float32Array;this.array = new TypedArrayConstructor(size * this.componentSize);this.indexOffset = indexOffset || 0;};SPE.TypedArrayHelper.constructor = SPE.TypedArrayHelper;SPE.TypedArrayHelper.prototype.setSize = function(size, noComponentMultiply){"use strict";var currentArraySize=this.array.length;if(!noComponentMultiply){size = size * this.componentSize;}if(size < currentArraySize){return this.shrink(size);}else if(size > currentArraySize){return this.grow(size);}else {console.info("TypedArray is already of size:", size + ".", "Will not resize.");}};SPE.TypedArrayHelper.prototype.shrink = function(size){"use strict";this.array = this.array.subarray(0, size);this.size = size;return this;};SPE.TypedArrayHelper.prototype.grow = function(size){"use strict";var existingArray=this.array, newArray=new this.TypedArrayConstructor(size);newArray.set(existingArray);this.array = newArray;this.size = size;return this;};SPE.TypedArrayHelper.prototype.splice = function(start, end){"use strict";start *= this.componentSize;end *= this.componentSize;var data=[], array=this.array, size=array.length;for(var i=0; i < size; ++i) {if(i < start || i >= end){data.push(array[i]);}}this.setFromArray(0, data);return this;};SPE.TypedArrayHelper.prototype.setFromArray = function(index, array){"use strict";var sourceArraySize=array.length, newSize=index + sourceArraySize;if(newSize > this.array.length){this.grow(newSize);}else if(newSize < this.array.length){this.shrink(newSize);}this.array.set(array, this.indexOffset + index);return this;};SPE.TypedArrayHelper.prototype.setVec2 = function(index, vec2){"use strict";return this.setVec2Components(index, vec2.x, vec2.y);};SPE.TypedArrayHelper.prototype.setVec2Components = function(index, x, y){"use strict";var array=this.array, i=this.indexOffset + index * this.componentSize;array[i] = x;array[i + 1] = y;return this;};SPE.TypedArrayHelper.prototype.setVec3 = function(index, vec3){"use strict";return this.setVec3Components(index, vec3.x, vec3.y, vec3.z);};SPE.TypedArrayHelper.prototype.setVec3Components = function(index, x, y, z){"use strict";var array=this.array, i=this.indexOffset + index * this.componentSize;array[i] = x;array[i + 1] = y;array[i + 2] = z;return this;};SPE.TypedArrayHelper.prototype.setVec4 = function(index, vec4){"use strict";return this.setVec4Components(index, vec4.x, vec4.y, vec4.z, vec4.w);};SPE.TypedArrayHelper.prototype.setVec4Components = function(index, x, y, z, w){"use strict";var array=this.array, i=this.indexOffset + index * this.componentSize;array[i] = x;array[i + 1] = y;array[i + 2] = z;array[i + 3] = w;return this;};SPE.TypedArrayHelper.prototype.setMat3 = function(index, mat3){"use strict";return this.setFromArray(this.indexOffset + index * this.componentSize, mat3.elements);};SPE.TypedArrayHelper.prototype.setMat4 = function(index, mat4){"use strict";return this.setFromArray(this.indexOffset + index * this.componentSize, mat4.elements);};SPE.TypedArrayHelper.prototype.setColor = function(index, color){"use strict";return this.setVec3Components(index, color.r, color.g, color.b);};SPE.TypedArrayHelper.prototype.setNumber = function(index, numericValue){"use strict";this.array[this.indexOffset + index * this.componentSize] = numericValue;return this;};SPE.TypedArrayHelper.prototype.getValueAtIndex = function(index){"use strict";return this.array[this.indexOffset + index];};SPE.TypedArrayHelper.prototype.getComponentValueAtIndex = function(index){"use strict";return this.array.subarray(this.indexOffset + index * this.componentSize);};SPE.ShaderAttribute = function(type, dynamicBuffer, arrayType){"use strict";var typeMap=SPE.ShaderAttribute.typeSizeMap;this.type = typeof type === "string" && typeMap.hasOwnProperty(type)?type:"f";this.componentSize = typeMap[this.type];this.arrayType = arrayType || Float32Array;this.typedArray = null;this.bufferAttribute = null;this.dynamicBuffer = !!dynamicBuffer;this.updateMin = 0;this.updateMax = 0;};SPE.ShaderAttribute.constructor = SPE.ShaderAttribute;SPE.ShaderAttribute.typeSizeMap = {f:1, v2:2, v3:3, v4:4, c:3, m3:9, m4:16};SPE.ShaderAttribute.prototype.setUpdateRange = function(min, max){"use strict";this.updateMin = Math.min(min * this.componentSize, this.updateMin * this.componentSize);this.updateMax = Math.max(max * this.componentSize, this.updateMax * this.componentSize);};SPE.ShaderAttribute.prototype.flagUpdate = function(){"use strict";var attr=this.bufferAttribute, range=attr.updateRange;range.offset = this.updateMin;range.count = Math.min(this.updateMax - this.updateMin + this.componentSize, this.typedArray.array.length);attr.needsUpdate = true;};SPE.ShaderAttribute.prototype.resetUpdateRange = function(){"use strict";this.updateMin = 0;this.updateMax = 0;};SPE.ShaderAttribute.prototype.resetDynamic = function(){"use strict";this.bufferAttribute.dynamic = this.dynamicBuffer;};SPE.ShaderAttribute.prototype.splice = function(start, end){"use strict";this.typedArray.splice(start, end);this.forceUpdateAll();};SPE.ShaderAttribute.prototype.forceUpdateAll = function(){"use strict";this.bufferAttribute.array = this.typedArray.array;this.bufferAttribute.updateRange.offset = 0;this.bufferAttribute.updateRange.count = -1;this.bufferAttribute.dynamic = false;this.bufferAttribute.needsUpdate = true;};SPE.ShaderAttribute.prototype._ensureTypedArray = function(size){"use strict";if(this.typedArray !== null && this.typedArray.size === size * this.componentSize){return;}else if(this.typedArray !== null && this.typedArray.size !== size){this.typedArray.setSize(size);}else if(this.typedArray === null){this.typedArray = new SPE.TypedArrayHelper(this.arrayType, size, this.componentSize);}};SPE.ShaderAttribute.prototype._createBufferAttribute = function(size){"use strict";this._ensureTypedArray(size);if(this.bufferAttribute !== null){this.bufferAttribute.array = this.typedArray.array;this.bufferAttribute.needsUpdate = true;return;}this.bufferAttribute = new THREE.BufferAttribute(this.typedArray.array, this.componentSize);this.bufferAttribute.dynamic = this.dynamicBuffer;};SPE.ShaderAttribute.prototype.getLength = function(){"use strict";if(this.typedArray === null){return 0;}return this.typedArray.array.length;};SPE.shaderChunks = {defines:["#define PACKED_COLOR_SIZE 256.0", "#define PACKED_COLOR_DIVISOR 255.0"].join("\n"), uniforms:["uniform float deltaTime;", "uniform float runTime;", "uniform sampler2D texture;", "uniform vec4 textureAnimation;", "uniform float scale;"].join("\n"), attributes:["attribute vec4 acceleration;", "attribute vec3 velocity;", "attribute vec4 rotation;", "attribute vec3 rotationCenter;", "attribute vec4 params;", "attribute vec4 size;", "attribute vec4 angle;", "attribute vec4 color;", "attribute vec4 opacity;"].join("\n"), varyings:["varying vec4 vColor;", "#ifdef SHOULD_ROTATE_TEXTURE", "    varying float vAngle;", "#endif", "#ifdef SHOULD_CALCULATE_SPRITE", "    varying vec4 vSpriteSheet;", "#endif"].join("\n"), branchAvoidanceFunctions:["float when_gt(float x, float y) {", "    return max(sign(x - y), 0.0);", "}", "float when_lt(float x, float y) {", "    return min( max(1.0 - sign(x - y), 0.0), 1.0 );", "}", "float when_eq( float x, float y ) {", "    return 1.0 - abs( sign( x - y ) );", "}", "float when_ge(float x, float y) {", "  return 1.0 - when_lt(x, y);", "}", "float when_le(float x, float y) {", "  return 1.0 - when_gt(x, y);", "}", "float and(float a, float b) {", "    return a * b;", "}", "float or(float a, float b) {", "    return min(a + b, 1.0);", "}"].join("\n"), unpackColor:["vec3 unpackColor( in float hex ) {", "   vec3 c = vec3( 0.0 );", "   float r = mod( (hex / PACKED_COLOR_SIZE / PACKED_COLOR_SIZE), PACKED_COLOR_SIZE );", "   float g = mod( (hex / PACKED_COLOR_SIZE), PACKED_COLOR_SIZE );", "   float b = mod( hex, PACKED_COLOR_SIZE );", "   c.r = r / PACKED_COLOR_DIVISOR;", "   c.g = g / PACKED_COLOR_DIVISOR;", "   c.b = b / PACKED_COLOR_DIVISOR;", "   return c;", "}"].join("\n"), floatOverLifetime:["float getFloatOverLifetime( in float positionInTime, in vec4 attr ) {", "    highp float value = 0.0;", "    float deltaAge = positionInTime * float( VALUE_OVER_LIFETIME_LENGTH - 1 );", "    float fIndex = 0.0;", "    float shouldApplyValue = 0.0;", "    value += attr[ 0 ] * when_eq( deltaAge, 0.0 );", "", "    for( int i = 0; i < VALUE_OVER_LIFETIME_LENGTH - 1; ++i ) {", "       fIndex = float( i );", "       shouldApplyValue = and( when_gt( deltaAge, fIndex ), when_le( deltaAge, fIndex + 1.0 ) );", "       value += shouldApplyValue * mix( attr[ i ], attr[ i + 1 ], deltaAge - fIndex );", "    }", "", "    return value;", "}"].join("\n"), colorOverLifetime:["vec3 getColorOverLifetime( in float positionInTime, in vec3 color1, in vec3 color2, in vec3 color3, in vec3 color4 ) {", "    vec3 value = vec3( 0.0 );", "    value.x = getFloatOverLifetime( positionInTime, vec4( color1.x, color2.x, color3.x, color4.x ) );", "    value.y = getFloatOverLifetime( positionInTime, vec4( color1.y, color2.y, color3.y, color4.y ) );", "    value.z = getFloatOverLifetime( positionInTime, vec4( color1.z, color2.z, color3.z, color4.z ) );", "    return value;", "}"].join("\n"), paramFetchingFunctions:["float getAlive() {", "   return params.x;", "}", "float getAge() {", "   return params.y;", "}", "float getMaxAge() {", "   return params.z;", "}", "float getWiggle() {", "   return params.w;", "}"].join("\n"), forceFetchingFunctions:["vec4 getPosition( in float age ) {", "   return modelViewMatrix * vec4( position, 1.0 );", "}", "vec3 getVelocity( in float age ) {", "   return velocity * age;", "}", "vec3 getAcceleration( in float age ) {", "   return acceleration.xyz * age;", "}"].join("\n"), rotationFunctions:["#ifdef SHOULD_ROTATE_PARTICLES", "   mat4 getRotationMatrix( in vec3 axis, in float angle) {", "       axis = normalize(axis);", "       float s = sin(angle);", "       float c = cos(angle);", "       float oc = 1.0 - c;", "", "       return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,", "                   oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,", "                   oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,", "                   0.0,                                0.0,                                0.0,                                1.0);", "   }", "", "   vec3 getRotation( in vec3 pos, in float positionInTime ) {", "      if( rotation.y == 0.0 ) {", "           return pos;", "      }", "", "      vec3 axis = unpackColor( rotation.x );", "      vec3 center = rotationCenter;", "      vec3 translated;", "      mat4 rotationMatrix;", "      float angle = 0.0;", "      angle += when_eq( rotation.z, 0.0 ) * rotation.y;", "      angle += when_gt( rotation.z, 0.0 ) * mix( 0.0, rotation.y, positionInTime );", "      translated = rotationCenter - pos;", "      rotationMatrix = getRotationMatrix( axis, angle );", "      return center - vec3( rotationMatrix * vec4( translated, 0.0 ) );", "   }", "#endif"].join("\n"), rotateTexture:["    vec2 vUv = vec2( gl_PointCoord.x, 1.0 - gl_PointCoord.y );", "", "    #ifdef SHOULD_ROTATE_TEXTURE", "       float x = gl_PointCoord.x - 0.5;", "       float y = 1.0 - gl_PointCoord.y - 0.5;", "       float c = cos( -vAngle );", "       float s = sin( -vAngle );", "       vUv = vec2( c * x + s * y + 0.5, c * y - s * x + 0.5 );", "    #endif", "", "    #ifdef SHOULD_CALCULATE_SPRITE", "        float framesX = vSpriteSheet.x;", "        float framesY = vSpriteSheet.y;", "        float columnNorm = vSpriteSheet.z;", "        float rowNorm = vSpriteSheet.w;", "        vUv.x = gl_PointCoord.x * framesX + columnNorm;", "        vUv.y = 1.0 - (gl_PointCoord.y * framesY + rowNorm);", "    #endif", "", "    vec4 rotatedTexture = texture2D( texture, vUv );"].join("\n")};SPE.shaders = {vertex:[SPE.shaderChunks.defines, SPE.shaderChunks.uniforms, SPE.shaderChunks.attributes, SPE.shaderChunks.varyings, THREE.ShaderChunk.common, THREE.ShaderChunk.logdepthbuf_pars_vertex, SPE.shaderChunks.branchAvoidanceFunctions, SPE.shaderChunks.unpackColor, SPE.shaderChunks.floatOverLifetime, SPE.shaderChunks.colorOverLifetime, SPE.shaderChunks.paramFetchingFunctions, SPE.shaderChunks.forceFetchingFunctions, SPE.shaderChunks.rotationFunctions, "void main() {", "    highp float age = getAge();", "    highp float alive = getAlive();", "    highp float maxAge = getMaxAge();", "    highp float positionInTime = (age / maxAge);", "    highp float isAlive = when_gt( alive, 0.0 );", "    #ifdef SHOULD_WIGGLE_PARTICLES", "        float wiggleAmount = positionInTime * getWiggle();", "        float wiggleSin = isAlive * sin( wiggleAmount );", "        float wiggleCos = isAlive * cos( wiggleAmount );", "    #endif", "    vec3 vel = getVelocity( age );", "    vec3 accel = getAcceleration( age );", "    vec3 force = vec3( 0.0 );", "    vec3 pos = vec3( position );", "    float drag = 1.0 - (positionInTime * 0.5) * acceleration.w;", "    force += vel;", "    force *= drag;", "    force += accel * age;", "    pos += force;", "    #ifdef SHOULD_WIGGLE_PARTICLES", "        pos.x += wiggleSin;", "        pos.y += wiggleCos;", "        pos.z += wiggleSin;", "    #endif", "    #ifdef SHOULD_ROTATE_PARTICLES", "        pos = getRotation( pos, positionInTime );", "    #endif", "    vec4 mvPos = modelViewMatrix * vec4( pos, 1.0 );", "    highp float pointSize = getFloatOverLifetime( positionInTime, size ) * isAlive;", "    #ifdef HAS_PERSPECTIVE", "        float perspective = scale / length( mvPos.xyz );", "    #else", "        float perspective = 1.0;", "    #endif", "    float pointSizePerspective = pointSize * perspective;", "    #ifdef COLORIZE", "       vec3 c = isAlive * getColorOverLifetime(", "           positionInTime,", "           unpackColor( color.x ),", "           unpackColor( color.y ),", "           unpackColor( color.z ),", "           unpackColor( color.w )", "       );", "    #else", "       vec3 c = vec3(1.0);", "    #endif", "    float o = isAlive * getFloatOverLifetime( positionInTime, opacity );", "    vColor = vec4( c, o );", "    #ifdef SHOULD_ROTATE_TEXTURE", "        vAngle = isAlive * getFloatOverLifetime( positionInTime, angle );", "    #endif", "    #ifdef SHOULD_CALCULATE_SPRITE", "        float framesX = textureAnimation.x;", "        float framesY = textureAnimation.y;", "        float loopCount = textureAnimation.w;", "        float totalFrames = textureAnimation.z;", "        float frameNumber = mod( (positionInTime * loopCount) * totalFrames, totalFrames );", "        float column = floor(mod( frameNumber, framesX ));", "        float row = floor( (frameNumber - column) / framesX );", "        float columnNorm = column / framesX;", "        float rowNorm = row / framesY;", "        vSpriteSheet.x = 1.0 / framesX;", "        vSpriteSheet.y = 1.0 / framesY;", "        vSpriteSheet.z = columnNorm;", "        vSpriteSheet.w = rowNorm;", "    #endif", "    gl_PointSize = pointSizePerspective;", "    gl_Position = projectionMatrix * mvPos;", THREE.ShaderChunk.logdepthbuf_vertex, "}"].join("\n"), fragment:[SPE.shaderChunks.uniforms, THREE.ShaderChunk.common, THREE.ShaderChunk.fog_pars_fragment, THREE.ShaderChunk.logdepthbuf_pars_fragment, SPE.shaderChunks.varyings, SPE.shaderChunks.branchAvoidanceFunctions, "void main() {", "    vec3 outgoingLight = vColor.xyz;", "    ", "    #ifdef ALPHATEST", "       if ( vColor.w < float(ALPHATEST) ) discard;", "    #endif", SPE.shaderChunks.rotateTexture, THREE.ShaderChunk.logdepthbuf_fragment, "    outgoingLight = vColor.xyz * rotatedTexture.xyz;", THREE.ShaderChunk.fog_fragment, "    gl_FragColor = vec4( outgoingLight.xyz, rotatedTexture.w * vColor.w );", "}"].join("\n")};SPE.utils = {types:{BOOLEAN:"boolean", STRING:"string", NUMBER:"number", OBJECT:"object"}, ensureTypedArg:function ensureTypedArg(arg, type, defaultValue){"use strict";if(typeof arg === type){return arg;}else {return defaultValue;}}, ensureArrayTypedArg:function ensureArrayTypedArg(arg, type, defaultValue){"use strict";if(Array.isArray(arg)){for(var i=arg.length - 1; i >= 0; --i) {if(typeof arg[i] !== type){return defaultValue;}}return arg;}return this.ensureTypedArg(arg, type, defaultValue);}, ensureInstanceOf:function ensureInstanceOf(arg, instance, defaultValue){"use strict";if(instance !== undefined && arg instanceof instance){return arg;}else {return defaultValue;}}, ensureArrayInstanceOf:function ensureArrayInstanceOf(arg, instance, defaultValue){"use strict";if(Array.isArray(arg)){for(var i=arg.length - 1; i >= 0; --i) {if(instance !== undefined && arg[i] instanceof instance === false){return defaultValue;}}return arg;}return this.ensureInstanceOf(arg, instance, defaultValue);}, ensureValueOverLifetimeCompliance:function ensureValueOverLifetimeCompliance(property, minLength, maxLength){"use strict";minLength = minLength || 3;maxLength = maxLength || 3;if(Array.isArray(property._value) === false){property._value = [property._value];}if(Array.isArray(property._spread) === false){property._spread = [property._spread];}var valueLength=this.clamp(property._value.length, minLength, maxLength), spreadLength=this.clamp(property._spread.length, minLength, maxLength), desiredLength=Math.max(valueLength, spreadLength);if(property._value.length !== desiredLength){property._value = this.interpolateArray(property._value, desiredLength);}if(property._spread.length !== desiredLength){property._spread = this.interpolateArray(property._spread, desiredLength);}}, interpolateArray:function interpolateArray(srcArray, newLength){"use strict";var sourceLength=srcArray.length, newArray=[typeof srcArray[0].clone === "function"?srcArray[0].clone():srcArray[0]], factor=(sourceLength - 1) / (newLength - 1);for(var i=1; i < newLength - 1; ++i) {var f=i * factor, before=Math.floor(f), after=Math.ceil(f), delta=f - before;newArray[i] = this.lerpTypeAgnostic(srcArray[before], srcArray[after], delta);}newArray.push(typeof srcArray[sourceLength - 1].clone === "function"?srcArray[sourceLength - 1].clone():srcArray[sourceLength - 1]);return newArray;}, clamp:function clamp(value, min, max){"use strict";return Math.max(min, Math.min(value, max));}, zeroToEpsilon:function zeroToEpsilon(value, randomise){"use strict";var epsilon=0.00001, result=value;result = randomise?Math.random() * epsilon * 10:epsilon;if(value < 0 && value > -epsilon){result = -result;}return result;}, lerpTypeAgnostic:function lerpTypeAgnostic(start, end, delta){"use strict";var types=this.types, out;if(typeof start === types.NUMBER && typeof end === types.NUMBER){return start + (end - start) * delta;}else if(start instanceof THREE.Vector2 && end instanceof THREE.Vector2){out = start.clone();out.x = this.lerp(start.x, end.x, delta);out.y = this.lerp(start.y, end.y, delta);return out;}else if(start instanceof THREE.Vector3 && end instanceof THREE.Vector3){out = start.clone();out.x = this.lerp(start.x, end.x, delta);out.y = this.lerp(start.y, end.y, delta);out.z = this.lerp(start.z, end.z, delta);return out;}else if(start instanceof THREE.Vector4 && end instanceof THREE.Vector4){out = start.clone();out.x = this.lerp(start.x, end.x, delta);out.y = this.lerp(start.y, end.y, delta);out.z = this.lerp(start.z, end.z, delta);out.w = this.lerp(start.w, end.w, delta);return out;}else if(start instanceof THREE.Color && end instanceof THREE.Color){out = start.clone();out.r = this.lerp(start.r, end.r, delta);out.g = this.lerp(start.g, end.g, delta);out.b = this.lerp(start.b, end.b, delta);return out;}else {console.warn("Invalid argument types, or argument types do not match:", start, end);}}, lerp:function lerp(start, end, delta){"use strict";return start + (end - start) * delta;}, roundToNearestMultiple:function roundToNearestMultiple(n, multiple){"use strict";var remainder=0;if(multiple === 0){return n;}remainder = Math.abs(n) % multiple;if(remainder === 0){return n;}if(n < 0){return -(Math.abs(n) - remainder);}return n + multiple - remainder;}, arrayValuesAreEqual:function arrayValuesAreEqual(array){"use strict";for(var i=0; i < array.length - 1; ++i) {if(array[i] !== array[i + 1]){return false;}}return true;}, randomFloat:function randomFloat(base, spread){"use strict";return base + spread * (Math.random() - 0.5);}, randomVector3:function randomVector3(attribute, index, base, spread, spreadClamp){"use strict";var x=base.x + (Math.random() * spread.x - spread.x * 0.5), y=base.y + (Math.random() * spread.y - spread.y * 0.5), z=base.z + (Math.random() * spread.z - spread.z * 0.5);if(spreadClamp){x = -spreadClamp.x * 0.5 + this.roundToNearestMultiple(x, spreadClamp.x);y = -spreadClamp.y * 0.5 + this.roundToNearestMultiple(y, spreadClamp.y);z = -spreadClamp.z * 0.5 + this.roundToNearestMultiple(z, spreadClamp.z);}attribute.typedArray.setVec3Components(index, x, y, z);}, randomColor:function randomColor(attribute, index, base, spread){"use strict";var r=base.r + Math.random() * spread.x, g=base.g + Math.random() * spread.y, b=base.b + Math.random() * spread.z;r = this.clamp(r, 0, 1);g = this.clamp(g, 0, 1);b = this.clamp(b, 0, 1);attribute.typedArray.setVec3Components(index, r, g, b);}, randomColorAsHex:(function(){"use strict";var workingColor=new THREE.Color();return function(attribute, index, base, spread){var numItems=base.length, colors=[];for(var i=0; i < numItems; ++i) {var spreadVector=spread[i];workingColor.copy(base[i]);workingColor.r += Math.random() * spreadVector.x - spreadVector.x * 0.5;workingColor.g += Math.random() * spreadVector.y - spreadVector.y * 0.5;workingColor.b += Math.random() * spreadVector.z - spreadVector.z * 0.5;workingColor.r = this.clamp(workingColor.r, 0, 1);workingColor.g = this.clamp(workingColor.g, 0, 1);workingColor.b = this.clamp(workingColor.b, 0, 1);colors.push(workingColor.getHex());}attribute.typedArray.setVec4Components(index, colors[0], colors[1], colors[2], colors[3]);};})(), randomVector3OnSphere:function randomVector3OnSphere(attribute, index, base, radius, radiusSpread, radiusScale, radiusSpreadClamp, distributionClamp){"use strict";var depth=2 * Math.random() - 1, t=6.2832 * Math.random(), r=Math.sqrt(1 - depth * depth), rand=this.randomFloat(radius, radiusSpread), x=0, y=0, z=0;if(radiusSpreadClamp){rand = Math.round(rand / radiusSpreadClamp) * radiusSpreadClamp;}x = r * Math.cos(t) * rand;y = r * Math.sin(t) * rand;z = depth * rand;x *= radiusScale.x;y *= radiusScale.y;z *= radiusScale.z;x += base.x;y += base.y;z += base.z;attribute.typedArray.setVec3Components(index, x, y, z);}, seededRandom:function seededRandom(seed){var x=Math.sin(seed) * 10000;return x - (x | 0);}, randomVector3OnDisc:function randomVector3OnDisc(attribute, index, base, radius, radiusSpread, radiusScale, radiusSpreadClamp){"use strict";var t=6.2832 * Math.random(), rand=Math.abs(this.randomFloat(radius, radiusSpread)), x=0, y=0, z=0;if(radiusSpreadClamp){rand = Math.round(rand / radiusSpreadClamp) * radiusSpreadClamp;}x = Math.cos(t) * rand;y = Math.sin(t) * rand;x *= radiusScale.x;y *= radiusScale.y;x += base.x;y += base.y;z += base.z;attribute.typedArray.setVec3Components(index, x, y, z);}, randomDirectionVector3OnSphere:(function(){"use strict";var v=new THREE.Vector3();return function(attribute, index, posX, posY, posZ, emitterPosition, speed, speedSpread){v.copy(emitterPosition);v.x -= posX;v.y -= posY;v.z -= posZ;v.normalize().multiplyScalar(-this.randomFloat(speed, speedSpread));attribute.typedArray.setVec3Components(index, v.x, v.y, v.z);};})(), randomDirectionVector3OnDisc:(function(){"use strict";var v=new THREE.Vector3();return function(attribute, index, posX, posY, posZ, emitterPosition, speed, speedSpread){v.copy(emitterPosition);v.x -= posX;v.y -= posY;v.z -= posZ;v.normalize().multiplyScalar(-this.randomFloat(speed, speedSpread));attribute.typedArray.setVec3Components(index, v.x, v.y, 0);};})(), getPackedRotationAxis:(function(){"use strict";var v=new THREE.Vector3(), vSpread=new THREE.Vector3(), c=new THREE.Color();return function(axis, axisSpread){v.copy(axis).normalize();vSpread.copy(axisSpread).normalize();v.x += -axisSpread.x * 0.5 + Math.random() * axisSpread.x;v.y += -axisSpread.y * 0.5 + Math.random() * axisSpread.y;v.z += -axisSpread.z * 0.5 + Math.random() * axisSpread.z;v.x = Math.abs(v.x);v.y = Math.abs(v.y);v.z = Math.abs(v.z);v.normalize();c.setRGB(v.x, v.y, v.z);return c.getHex();};})()};SPE.Group = function(options){"use strict";var utils=SPE.utils, types=utils.types;options = utils.ensureTypedArg(options, types.OBJECT, {});options.texture = utils.ensureTypedArg(options.texture, types.OBJECT, {});this.uuid = THREE.Math.generateUUID();this.fixedTimeStep = utils.ensureTypedArg(options.fixedTimeStep, types.NUMBER, 0.016);this.texture = utils.ensureInstanceOf(options.texture.value, THREE.Texture, null);this.textureFrames = utils.ensureInstanceOf(options.texture.frames, THREE.Vector2, new THREE.Vector2(1, 1));this.textureFrameCount = utils.ensureTypedArg(options.texture.frameCount, types.NUMBER, this.textureFrames.x * this.textureFrames.y);this.textureLoop = utils.ensureTypedArg(options.texture.loop, types.NUMBER, 1);this.textureFrames.max(new THREE.Vector2(1, 1));this.hasPerspective = utils.ensureTypedArg(options.hasPerspective, types.BOOLEAN, true);this.colorize = utils.ensureTypedArg(options.colorize, types.BOOLEAN, true);this.maxParticleCount = utils.ensureTypedArg(options.maxParticleCount, types.NUMBER, null);this.blending = utils.ensureTypedArg(options.blending, types.NUMBER, THREE.AdditiveBlending);this.transparent = utils.ensureTypedArg(options.transparent, types.BOOLEAN, true);this.alphaTest = parseFloat(utils.ensureTypedArg(options.alphaTest, types.NUMBER, 0));this.depthWrite = utils.ensureTypedArg(options.depthWrite, types.BOOLEAN, false);this.depthTest = utils.ensureTypedArg(options.depthTest, types.BOOLEAN, true);this.fog = utils.ensureTypedArg(options.fog, types.BOOLEAN, true);this.scale = utils.ensureTypedArg(options.scale, types.NUMBER, 300);this.emitters = [];this.emitterIDs = [];this._pool = [];this._poolCreationSettings = null;this._createNewWhenPoolEmpty = 0;this._attributesNeedRefresh = false;this._attributesNeedDynamicReset = false;this.particleCount = 0;this.uniforms = {texture:{type:"t", value:this.texture}, textureAnimation:{type:"v4", value:new THREE.Vector4(this.textureFrames.x, this.textureFrames.y, this.textureFrameCount, Math.max(Math.abs(this.textureLoop), 1))}, fogColor:{type:"c", value:null}, fogNear:{type:"f", value:10}, fogFar:{type:"f", value:200}, fogDensity:{type:"f", value:0.5}, deltaTime:{type:"f", value:0}, runTime:{type:"f", value:0}, scale:{type:"f", value:this.scale}};this.defines = {HAS_PERSPECTIVE:this.hasPerspective, COLORIZE:this.colorize, VALUE_OVER_LIFETIME_LENGTH:SPE.valueOverLifetimeLength, SHOULD_ROTATE_TEXTURE:false, SHOULD_ROTATE_PARTICLES:false, SHOULD_WIGGLE_PARTICLES:false, SHOULD_CALCULATE_SPRITE:this.textureFrames.x > 1 || this.textureFrames.y > 1};this.attributes = {position:new SPE.ShaderAttribute("v3", true), acceleration:new SPE.ShaderAttribute("v4", true), velocity:new SPE.ShaderAttribute("v3", true), rotation:new SPE.ShaderAttribute("v4", true), rotationCenter:new SPE.ShaderAttribute("v3", true), params:new SPE.ShaderAttribute("v4", true), size:new SPE.ShaderAttribute("v4", true), angle:new SPE.ShaderAttribute("v4", true), color:new SPE.ShaderAttribute("v4", true), opacity:new SPE.ShaderAttribute("v4", true)};this.attributeKeys = Object.keys(this.attributes);this.attributeCount = this.attributeKeys.length;this.material = new THREE.ShaderMaterial({uniforms:this.uniforms, vertexShader:SPE.shaders.vertex, fragmentShader:SPE.shaders.fragment, blending:this.blending, transparent:this.transparent, alphaTest:this.alphaTest, depthWrite:this.depthWrite, depthTest:this.depthTest, defines:this.defines, fog:this.fog});this.geometry = new THREE.BufferGeometry();this.mesh = new THREE.Points(this.geometry, this.material);if(this.maxParticleCount === null){console.warn("SPE.Group: No maxParticleCount specified. Adding emitters after rendering will probably cause errors.");}};SPE.Group.constructor = SPE.Group;SPE.Group.prototype._updateDefines = function(){"use strict";var emitters=this.emitters, i=emitters.length - 1, emitter, defines=this.defines;for(i; i >= 0; --i) {emitter = emitters[i];if(!defines.SHOULD_CALCULATE_SPRITE){defines.SHOULD_ROTATE_TEXTURE = defines.SHOULD_ROTATE_TEXTURE || !!Math.max(Math.max.apply(null, emitter.angle.value), Math.max.apply(null, emitter.angle.spread));}defines.SHOULD_ROTATE_PARTICLES = defines.SHOULD_ROTATE_PARTICLES || !!Math.max(emitter.rotation.angle, emitter.rotation.angleSpread);defines.SHOULD_WIGGLE_PARTICLES = defines.SHOULD_WIGGLE_PARTICLES || !!Math.max(emitter.wiggle.value, emitter.wiggle.spread);}this.material.needsUpdate = true;};SPE.Group.prototype._applyAttributesToGeometry = function(){"use strict";var attributes=this.attributes, geometry=this.geometry, geometryAttributes=geometry.attributes, attribute, geometryAttribute;for(var attr in attributes) {if(attributes.hasOwnProperty(attr)){attribute = attributes[attr];geometryAttribute = geometryAttributes[attr];if(geometryAttribute){geometryAttribute.array = attribute.typedArray.array;}else {geometry.addAttribute(attr, attribute.bufferAttribute);}attribute.bufferAttribute.needsUpdate = true;}}this.geometry.setDrawRange(0, this.particleCount);};SPE.Group.prototype.addEmitter = function(emitter){"use strict";if(emitter instanceof SPE.Emitter === false){console.error("`emitter` argument must be instance of SPE.Emitter. Was provided with:", emitter);return;}else if(this.emitterIDs.indexOf(emitter.uuid) > -1){console.error("Emitter already exists in this group. Will not add again.");return;}else if(emitter.group !== null){console.error("Emitter already belongs to another group. Will not add to requested group.");return;}var attributes=this.attributes, start=this.particleCount, end=start + emitter.particleCount;this.particleCount = end;if(this.maxParticleCount !== null && this.particleCount > this.maxParticleCount){console.warn("SPE.Group: maxParticleCount exceeded. Requesting", this.particleCount, "particles, can support only", this.maxParticleCount);}emitter._calculatePPSValue(emitter.maxAge._value + emitter.maxAge._spread);emitter._setBufferUpdateRanges(this.attributeKeys);emitter._setAttributeOffset(start);emitter.group = this;emitter.attributes = this.attributes;for(var attr in attributes) {if(attributes.hasOwnProperty(attr)){attributes[attr]._createBufferAttribute(this.maxParticleCount !== null?this.maxParticleCount:this.particleCount);}}for(var i=start; i < end; ++i) {emitter._assignPositionValue(i);emitter._assignForceValue(i, "velocity");emitter._assignForceValue(i, "acceleration");emitter._assignAbsLifetimeValue(i, "opacity");emitter._assignAbsLifetimeValue(i, "size");emitter._assignAngleValue(i);emitter._assignRotationValue(i);emitter._assignParamsValue(i);emitter._assignColorValue(i);}this._applyAttributesToGeometry();this.emitters.push(emitter);this.emitterIDs.push(emitter.uuid);this._updateDefines(emitter);this.material.needsUpdate = true;this.geometry.needsUpdate = true;this._attributesNeedRefresh = true;return this;};SPE.Group.prototype.removeEmitter = function(emitter){"use strict";var emitterIndex=this.emitterIDs.indexOf(emitter.uuid);if(emitter instanceof SPE.Emitter === false){console.error("`emitter` argument must be instance of SPE.Emitter. Was provided with:", emitter);return;}else if(emitterIndex === -1){console.error("Emitter does not exist in this group. Will not remove.");return;}var start=emitter.attributeOffset, end=start + emitter.particleCount, params=this.attributes.params.typedArray;for(var i=start; i < end; ++i) {params.array[i * 4] = 0;params.array[i * 4 + 1] = 0;}this.emitters.splice(emitterIndex, 1);this.emitterIDs.splice(emitterIndex, 1);for(var attr in this.attributes) {if(this.attributes.hasOwnProperty(attr)){this.attributes[attr].splice(start, end);}}this.particleCount -= emitter.particleCount;emitter._onRemove();this._attributesNeedRefresh = true;};SPE.Group.prototype.getFromPool = function(){"use strict";var pool=this._pool, createNew=this._createNewWhenPoolEmpty;if(pool.length){return pool.pop();}else if(createNew){return new SPE.Emitter(this._poolCreationSettings);}return null;};SPE.Group.prototype.releaseIntoPool = function(emitter){"use strict";if(emitter instanceof SPE.Emitter === false){console.error("Argument is not instanceof SPE.Emitter:", emitter);return;}emitter.reset();this._pool.unshift(emitter);return this;};SPE.Group.prototype.getPool = function(){"use strict";return this._pool;};SPE.Group.prototype.addPool = function(numEmitters, emitterOptions, createNew){"use strict";var emitter;this._poolCreationSettings = emitterOptions;this._createNewWhenPoolEmpty = !!createNew;for(var i=0; i < numEmitters; ++i) {if(Array.isArray(emitterOptions)){emitter = new SPE.Emitter(emitterOptions[i]);}else {emitter = new SPE.Emitter(emitterOptions);}this.addEmitter(emitter);this.releaseIntoPool(emitter);}return this;};SPE.Group.prototype._triggerSingleEmitter = function(pos){"use strict";var emitter=this.getFromPool(), self=this;if(emitter === null){console.log("SPE.Group pool ran out.");return;}if(pos instanceof THREE.Vector3){emitter.position.value.copy(pos);emitter.position.value = emitter.position.value;}emitter.enable();setTimeout(function(){emitter.disable();self.releaseIntoPool(emitter);}, (emitter.maxAge.value + emitter.maxAge.spread) * 1000);return this;};SPE.Group.prototype.triggerPoolEmitter = function(numEmitters, position){"use strict";if(typeof numEmitters === "number" && numEmitters > 1){for(var i=0; i < numEmitters; ++i) {this._triggerSingleEmitter(position);}}else {this._triggerSingleEmitter(position);}return this;};SPE.Group.prototype._updateUniforms = function(dt){"use strict";this.uniforms.runTime.value += dt;this.uniforms.deltaTime.value = dt;};SPE.Group.prototype._resetBufferRanges = function(){"use strict";var keys=this.attributeKeys, i=this.attributeCount - 1, attrs=this.attributes;for(i; i >= 0; --i) {attrs[keys[i]].resetUpdateRange();}};SPE.Group.prototype._updateBuffers = function(emitter){"use strict";var keys=this.attributeKeys, i=this.attributeCount - 1, attrs=this.attributes, emitterRanges=emitter.bufferUpdateRanges, key, emitterAttr, attr;for(i; i >= 0; --i) {key = keys[i];emitterAttr = emitterRanges[key];attr = attrs[key];attr.setUpdateRange(emitterAttr.min, emitterAttr.max);attr.flagUpdate();}};SPE.Group.prototype.tick = function(dt){"use strict";var emitters=this.emitters, numEmitters=emitters.length, deltaTime=dt || this.fixedTimeStep, keys=this.attributeKeys, i, attrs=this.attributes;this._updateUniforms(deltaTime);this._resetBufferRanges();if(numEmitters === 0 && this._attributesNeedRefresh === false && this._attributesNeedDynamicReset === false){return;}for(var i=0, emitter; i < numEmitters; ++i) {emitter = emitters[i];emitter.tick(deltaTime);this._updateBuffers(emitter);}if(this._attributesNeedDynamicReset === true){i = this.attributeCount - 1;for(i; i >= 0; --i) {attrs[keys[i]].resetDynamic();}this._attributesNeedDynamicReset = false;}if(this._attributesNeedRefresh === true){i = this.attributeCount - 1;for(i; i >= 0; --i) {attrs[keys[i]].forceUpdateAll();}this._attributesNeedRefresh = false;this._attributesNeedDynamicReset = true;}};SPE.Group.prototype.dispose = function(){"use strict";this.geometry.dispose();this.material.dispose();return this;};SPE.Emitter = function(options){"use strict";var utils=SPE.utils, types=utils.types, lifetimeLength=SPE.valueOverLifetimeLength;options = utils.ensureTypedArg(options, types.OBJECT, {});options.position = utils.ensureTypedArg(options.position, types.OBJECT, {});options.velocity = utils.ensureTypedArg(options.velocity, types.OBJECT, {});options.acceleration = utils.ensureTypedArg(options.acceleration, types.OBJECT, {});options.radius = utils.ensureTypedArg(options.radius, types.OBJECT, {});options.drag = utils.ensureTypedArg(options.drag, types.OBJECT, {});options.rotation = utils.ensureTypedArg(options.rotation, types.OBJECT, {});options.color = utils.ensureTypedArg(options.color, types.OBJECT, {});options.opacity = utils.ensureTypedArg(options.opacity, types.OBJECT, {});options.size = utils.ensureTypedArg(options.size, types.OBJECT, {});options.angle = utils.ensureTypedArg(options.angle, types.OBJECT, {});options.wiggle = utils.ensureTypedArg(options.wiggle, types.OBJECT, {});options.maxAge = utils.ensureTypedArg(options.maxAge, types.OBJECT, {});if(options.onParticleSpawn){console.warn("onParticleSpawn has been removed. Please set properties directly to alter values at runtime.");}this.uuid = THREE.Math.generateUUID();this.type = utils.ensureTypedArg(options.type, types.NUMBER, SPE.distributions.BOX);this.position = {_value:utils.ensureInstanceOf(options.position.value, THREE.Vector3, new THREE.Vector3()), _spread:utils.ensureInstanceOf(options.position.spread, THREE.Vector3, new THREE.Vector3()), _spreadClamp:utils.ensureInstanceOf(options.position.spreadClamp, THREE.Vector3, new THREE.Vector3()), _distribution:utils.ensureTypedArg(options.position.distribution, types.NUMBER, this.type), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false), _radius:utils.ensureTypedArg(options.position.radius, types.NUMBER, 10), _radiusScale:utils.ensureInstanceOf(options.position.scale, THREE.Vector3, new THREE.Vector3(1, 1, 1)), _distributionClamp:utils.ensureTypedArg(options.position.distributionClamp, types.NUMBER, 0)};this.velocity = {_value:utils.ensureInstanceOf(options.velocity.value, THREE.Vector3, new THREE.Vector3()), _spread:utils.ensureInstanceOf(options.velocity.spread, THREE.Vector3, new THREE.Vector3()), _distribution:utils.ensureTypedArg(options.velocity.distribution, types.NUMBER, this.type), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.acceleration = {_value:utils.ensureInstanceOf(options.acceleration.value, THREE.Vector3, new THREE.Vector3()), _spread:utils.ensureInstanceOf(options.acceleration.spread, THREE.Vector3, new THREE.Vector3()), _distribution:utils.ensureTypedArg(options.acceleration.distribution, types.NUMBER, this.type), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.drag = {_value:utils.ensureTypedArg(options.drag.value, types.NUMBER, 0), _spread:utils.ensureTypedArg(options.drag.spread, types.NUMBER, 0), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.wiggle = {_value:utils.ensureTypedArg(options.wiggle.value, types.NUMBER, 0), _spread:utils.ensureTypedArg(options.wiggle.spread, types.NUMBER, 0)};this.rotation = {_axis:utils.ensureInstanceOf(options.rotation.axis, THREE.Vector3, new THREE.Vector3(0, 1, 0)), _axisSpread:utils.ensureInstanceOf(options.rotation.axisSpread, THREE.Vector3, new THREE.Vector3()), _angle:utils.ensureTypedArg(options.rotation.angle, types.NUMBER, 0), _angleSpread:utils.ensureTypedArg(options.rotation.angleSpread, types.NUMBER, 0), _static:utils.ensureTypedArg(options.rotation["static"], types.BOOLEAN, false), _center:utils.ensureInstanceOf(options.rotation.center, THREE.Vector3, this.position._value.clone()), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.maxAge = {_value:utils.ensureTypedArg(options.maxAge.value, types.NUMBER, 2), _spread:utils.ensureTypedArg(options.maxAge.spread, types.NUMBER, 0)};this.color = {_value:utils.ensureArrayInstanceOf(options.color.value, THREE.Color, new THREE.Color()), _spread:utils.ensureArrayInstanceOf(options.color.spread, THREE.Vector3, new THREE.Vector3()), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.opacity = {_value:utils.ensureArrayTypedArg(options.opacity.value, types.NUMBER, 1), _spread:utils.ensureArrayTypedArg(options.opacity.spread, types.NUMBER, 0), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.size = {_value:utils.ensureArrayTypedArg(options.size.value, types.NUMBER, 1), _spread:utils.ensureArrayTypedArg(options.size.spread, types.NUMBER, 0), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.angle = {_value:utils.ensureArrayTypedArg(options.angle.value, types.NUMBER, 0), _spread:utils.ensureArrayTypedArg(options.angle.spread, types.NUMBER, 0), _randomise:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false)};this.particleCount = utils.ensureTypedArg(options.particleCount, types.NUMBER, 100);this.duration = utils.ensureTypedArg(options.duration, types.NUMBER, null);this.isStatic = utils.ensureTypedArg(options.isStatic, types.BOOLEAN, false);this.activeMultiplier = utils.ensureTypedArg(options.activeMultiplier, types.NUMBER, 1);this.direction = utils.ensureTypedArg(options.direction, types.NUMBER, 1);this.alive = utils.ensureTypedArg(options.alive, types.BOOLEAN, true);this.particlesPerSecond = 0;this.activationIndex = 0;this.attributeOffset = 0;this.attributeEnd = 0;this.age = 0;this.activeParticleCount = 0;this.group = null;this.attributes = null;this.paramsArray = null;this.resetFlags = {position:utils.ensureTypedArg(options.position.randomise, types.BOOLEAN, false) || utils.ensureTypedArg(options.radius.randomise, types.BOOLEAN, false), velocity:utils.ensureTypedArg(options.velocity.randomise, types.BOOLEAN, false), acceleration:utils.ensureTypedArg(options.acceleration.randomise, types.BOOLEAN, false) || utils.ensureTypedArg(options.drag.randomise, types.BOOLEAN, false), rotation:utils.ensureTypedArg(options.rotation.randomise, types.BOOLEAN, false), rotationCenter:utils.ensureTypedArg(options.rotation.randomise, types.BOOLEAN, false), size:utils.ensureTypedArg(options.size.randomise, types.BOOLEAN, false), color:utils.ensureTypedArg(options.color.randomise, types.BOOLEAN, false), opacity:utils.ensureTypedArg(options.opacity.randomise, types.BOOLEAN, false), angle:utils.ensureTypedArg(options.angle.randomise, types.BOOLEAN, false)};this.updateFlags = {};this.updateCounts = {};this.updateMap = {maxAge:"params", position:"position", velocity:"velocity", acceleration:"acceleration", drag:"acceleration", wiggle:"params", rotation:"rotation", size:"size", color:"color", opacity:"opacity", angle:"angle"};for(var i in this.updateMap) {if(this.updateMap.hasOwnProperty(i)){this.updateCounts[this.updateMap[i]] = 0;this.updateFlags[this.updateMap[i]] = false;this._createGetterSetters(this[i], i);}}this.bufferUpdateRanges = {};this.attributeKeys = null;this.attributeCount = 0;utils.ensureValueOverLifetimeCompliance(this.color, lifetimeLength, lifetimeLength);utils.ensureValueOverLifetimeCompliance(this.opacity, lifetimeLength, lifetimeLength);utils.ensureValueOverLifetimeCompliance(this.size, lifetimeLength, lifetimeLength);utils.ensureValueOverLifetimeCompliance(this.angle, lifetimeLength, lifetimeLength);};SPE.Emitter.constructor = SPE.Emitter;SPE.Emitter.prototype._createGetterSetters = function(propObj, propName){"use strict";var self=this;for(var i in propObj) {if(propObj.hasOwnProperty(i)){var name=i.replace("_", "");Object.defineProperty(propObj, name, {get:(function(prop){return function(){return this[prop];};})(i), set:(function(prop){return function(value){var mapName=self.updateMap[propName], prevValue=this[prop], length=SPE.valueOverLifetimeLength;if(prop === "_rotationCenter"){self.updateFlags.rotationCenter = true;self.updateCounts.rotationCenter = 0;}else if(prop === "_randomise"){self.resetFlags[mapName] = value;}else {self.updateFlags[mapName] = true;self.updateCounts[mapName] = 0;}self.group._updateDefines();this[prop] = value;if(Array.isArray(prevValue)){SPE.utils.ensureValueOverLifetimeCompliance(self[propName], length, length);}};})(i)});}}};SPE.Emitter.prototype._setBufferUpdateRanges = function(keys){"use strict";this.attributeKeys = keys;this.attributeCount = keys.length;for(var i=this.attributeCount - 1; i >= 0; --i) {this.bufferUpdateRanges[keys[i]] = {min:Number.POSITIVE_INFINITY, max:Number.NEGATIVE_INFINITY};}};SPE.Emitter.prototype._calculatePPSValue = function(groupMaxAge){"use strict";var particleCount=this.particleCount;if(this.duration){this.particlesPerSecond = particleCount / (groupMaxAge < this.duration?groupMaxAge:this.duration);}else {this.particlesPerSecond = particleCount / groupMaxAge;}};SPE.Emitter.prototype._setAttributeOffset = function(startIndex){this.attributeOffset = startIndex;this.activationIndex = startIndex;this.activationEnd = startIndex + this.particleCount;};SPE.Emitter.prototype._assignValue = function(prop, index){"use strict";switch(prop){case "position":this._assignPositionValue(index);break;case "velocity":case "acceleration":this._assignForceValue(index, prop);break;case "size":case "opacity":this._assignAbsLifetimeValue(index, prop);break;case "angle":this._assignAngleValue(index);break;case "params":this._assignParamsValue(index);break;case "rotation":this._assignRotationValue(index);break;case "color":this._assignColorValue(index);break;}};SPE.Emitter.prototype._assignPositionValue = function(index){"use strict";var distributions=SPE.distributions, utils=SPE.utils, prop=this.position, attr=this.attributes.position, value=prop._value, spread=prop._spread, distribution=prop._distribution;switch(distribution){case distributions.BOX:utils.randomVector3(attr, index, value, spread, prop._spreadClamp);break;case distributions.SPHERE:utils.randomVector3OnSphere(attr, index, value, prop._radius, prop._spread.x, prop._radiusScale, prop._spreadClamp.x, prop._distributionClamp || this.particleCount);break;case distributions.DISC:utils.randomVector3OnDisc(attr, index, value, prop._radius, prop._spread.x, prop._radiusScale, prop._spreadClamp.x);break;}};SPE.Emitter.prototype._assignForceValue = function(index, attrName){"use strict";var distributions=SPE.distributions, utils=SPE.utils, prop=this[attrName], value=prop._value, spread=prop._spread, distribution=prop._distribution, pos, positionX, positionY, positionZ, i;switch(distribution){case distributions.BOX:utils.randomVector3(this.attributes[attrName], index, value, spread);break;case distributions.SPHERE:pos = this.attributes.position.typedArray.array;i = index * 3;positionX = pos[i];positionY = pos[i + 1];positionZ = pos[i + 2];utils.randomDirectionVector3OnSphere(this.attributes[attrName], index, positionX, positionY, positionZ, this.position._value, prop._value.x, prop._spread.x);break;case distributions.DISC:pos = this.attributes.position.typedArray.array;i = index * 3;positionX = pos[i];positionY = pos[i + 1];positionZ = pos[i + 2];utils.randomDirectionVector3OnDisc(this.attributes[attrName], index, positionX, positionY, positionZ, this.position._value, prop._value.x, prop._spread.x);break;}if(attrName === "acceleration"){var drag=utils.clamp(utils.randomFloat(this.drag._value, this.drag._spread), 0, 1);this.attributes.acceleration.typedArray.array[index * 4 + 3] = drag;}};SPE.Emitter.prototype._assignAbsLifetimeValue = function(index, propName){"use strict";var array=this.attributes[propName].typedArray, prop=this[propName], utils=SPE.utils, value;if(utils.arrayValuesAreEqual(prop._value) && utils.arrayValuesAreEqual(prop._spread)){value = Math.abs(utils.randomFloat(prop._value[0], prop._spread[0]));array.setVec4Components(index, value, value, value, value);}else {array.setVec4Components(index, Math.abs(utils.randomFloat(prop._value[0], prop._spread[0])), Math.abs(utils.randomFloat(prop._value[1], prop._spread[1])), Math.abs(utils.randomFloat(prop._value[2], prop._spread[2])), Math.abs(utils.randomFloat(prop._value[3], prop._spread[3])));}};SPE.Emitter.prototype._assignAngleValue = function(index){"use strict";var array=this.attributes.angle.typedArray, prop=this.angle, utils=SPE.utils, value;if(utils.arrayValuesAreEqual(prop._value) && utils.arrayValuesAreEqual(prop._spread)){value = utils.randomFloat(prop._value[0], prop._spread[0]);array.setVec4Components(index, value, value, value, value);}else {array.setVec4Components(index, utils.randomFloat(prop._value[0], prop._spread[0]), utils.randomFloat(prop._value[1], prop._spread[1]), utils.randomFloat(prop._value[2], prop._spread[2]), utils.randomFloat(prop._value[3], prop._spread[3]));}};SPE.Emitter.prototype._assignParamsValue = function(index){"use strict";this.attributes.params.typedArray.setVec4Components(index, this.isStatic?1:0, 0, Math.abs(SPE.utils.randomFloat(this.maxAge._value, this.maxAge._spread)), SPE.utils.randomFloat(this.wiggle._value, this.wiggle._spread));};SPE.Emitter.prototype._assignRotationValue = function(index){"use strict";this.attributes.rotation.typedArray.setVec3Components(index, SPE.utils.getPackedRotationAxis(this.rotation._axis, this.rotation._axisSpread), SPE.utils.randomFloat(this.rotation._angle, this.rotation._angleSpread), this.rotation._static?0:1);this.attributes.rotationCenter.typedArray.setVec3(index, this.rotation._center);};SPE.Emitter.prototype._assignColorValue = function(index){"use strict";SPE.utils.randomColorAsHex(this.attributes.color, index, this.color._value, this.color._spread);};SPE.Emitter.prototype._resetParticle = function(index){"use strict";var resetFlags=this.resetFlags, updateFlags=this.updateFlags, updateCounts=this.updateCounts, keys=this.attributeKeys, key, updateFlag;for(var i=this.attributeCount - 1; i >= 0; --i) {key = keys[i];updateFlag = updateFlags[key];if(resetFlags[key] === true || updateFlag === true){this._assignValue(key, index);this._updateAttributeUpdateRange(key, index);if(updateFlag === true && updateCounts[key] === this.particleCount){updateFlags[key] = false;updateCounts[key] = 0;}else if(updateFlag == true){++updateCounts[key];}}}};SPE.Emitter.prototype._updateAttributeUpdateRange = function(attr, i){"use strict";var ranges=this.bufferUpdateRanges[attr];ranges.min = Math.min(i, ranges.min);ranges.max = Math.max(i, ranges.max);};SPE.Emitter.prototype._resetBufferRanges = function(){"use strict";var ranges=this.bufferUpdateRanges, keys=this.bufferUpdateKeys, i=this.bufferUpdateCount - 1, key;for(i; i >= 0; --i) {key = keys[i];ranges[key].min = Number.POSITIVE_INFINITY;ranges[key].max = Number.NEGATIVE_INFINITY;}};SPE.Emitter.prototype._onRemove = function(){"use strict";this.particlesPerSecond = 0;this.attributeOffset = 0;this.activationIndex = 0;this.activeParticleCount = 0;this.group = null;this.attributes = null;this.paramsArray = null;this.age = 0;};SPE.Emitter.prototype._decrementParticleCount = function(){"use strict";--this.activeParticleCount;};SPE.Emitter.prototype._incrementParticleCount = function(){"use strict";++this.activeParticleCount;};SPE.Emitter.prototype._checkParticleAges = function(start, end, params, dt){"use strict";for(var i=end - 1, index, maxAge, age, alive; i >= start; --i) {index = i * 4;alive = params[index];if(alive === 0){continue;}age = params[index + 1];maxAge = params[index + 2];if(this.direction === 1){age += dt;if(age >= maxAge){age = 0;alive = 0;this._decrementParticleCount();}}else {age -= dt;if(age <= 0){age = maxAge;alive = 0;this._decrementParticleCount();}}params[index] = alive;params[index + 1] = age;this._updateAttributeUpdateRange("params", i);}};SPE.Emitter.prototype._activateParticles = function(activationStart, activationEnd, params, dtPerParticle){"use strict";var direction=this.direction;for(var i=activationStart, index, dtValue; i < activationEnd; ++i) {index = i * 4;if(params[index] != 0 && this.particleCount !== 1){continue;}this._incrementParticleCount();params[index] = 1;this._resetParticle(i);dtValue = dtPerParticle * (i - activationStart);params[index + 1] = direction === -1?params[index + 2] - dtValue:dtValue;this._updateAttributeUpdateRange("params", i);}};SPE.Emitter.prototype.tick = function(dt){"use strict";if(this.isStatic){return;}if(this.paramsArray === null){this.paramsArray = this.attributes.params.typedArray.array;}var start=this.attributeOffset, end=start + this.particleCount, params=this.paramsArray, ppsDt=this.particlesPerSecond * this.activeMultiplier * dt, activationIndex=this.activationIndex;this._resetBufferRanges();this._checkParticleAges(start, end, params, dt);if(this.alive === false){this.age = 0;return;}if(this.duration !== null && this.age > this.duration){this.alive = false;this.age = 0;return;}var activationStart=this.particleCount === 1?activationIndex:activationIndex | 0, activationEnd=Math.min(activationStart + ppsDt, this.activationEnd), activationCount=activationEnd - this.activationIndex | 0, dtPerParticle=activationCount > 0?dt / activationCount:0;this._activateParticles(activationStart, activationEnd, params, dtPerParticle);this.activationIndex += ppsDt;if(this.activationIndex > end){this.activationIndex = start;}this.age += dt;};SPE.Emitter.prototype.reset = function(force){"use strict";this.age = 0;this.alive = false;if(force === true){var start=this.attributeOffset, end=start + this.particleCount, array=this.paramsArray, attr=this.attributes.params.bufferAttribute;for(var i=end - 1, index; i >= start; --i) {index = i * 4;array[index] = 0;array[index + 1] = 0;}attr.updateRange.offset = 0;attr.updateRange.count = -1;attr.needsUpdate = true;}return this;};SPE.Emitter.prototype.enable = function(){"use strict";this.alive = true;return this;};SPE.Emitter.prototype.disable = function(){"use strict";this.alive = false;return this;};SPE.Emitter.prototype.remove = function(){"use strict";if(this.group !== null){this.group.removeEmitter(this);}else {console.error("Emitter does not belong to a group, cannot remove.");}return this;};
 
-},{"three":21}],12:[function(require,module,exports){
+},{"three":23}],12:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -4255,7 +4265,7 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         if (!this.onPhone) {
           // after 43 seconds show the first key hint
           setTimeout(function () {
-            $("#key-hint-1").fadeIn(666);
+            //$('#key-hint-1').fadeIn(666);
             setTimeout(function () {
               $("#key-hint-1").fadeOut(666);
             }, 9666);
@@ -4263,7 +4273,7 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
 
           // after 3.5 minutes show the second key hint
           setTimeout(function () {
-            $("#key-hint-2").fadeIn(666);
+            //$('#key-hint-2').fadeIn(666);
             setTimeout(function () {
               $("#key-hint-2").fadeOut(666);
             }, 9666);
@@ -4324,7 +4334,7 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
   return MainScene;
 })(SheenScene);
 
-},{"./gallery.es6":5,"./lib/buzz":8,"./lib/rainyday":10,"./sheen-scene.es6":16,"jquery":19,"kutility":20,"three":21}],13:[function(require,module,exports){
+},{"./gallery.es6":5,"./lib/buzz":8,"./lib/rainyday":10,"./sheen-scene.es6":17,"jquery":20,"kutility":21,"three":23}],13:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -4471,7 +4481,7 @@ $(function () {
   sheen.activate();
 });
 
-},{"./controls/fly-controls":1,"./lib/physi.js":9,"./main-scene.es6":12,"./three-boiler.es6":17,"jquery":19,"three":21}],14:[function(require,module,exports){
+},{"./controls/fly-controls":1,"./lib/physi.js":9,"./main-scene.es6":12,"./three-boiler.es6":18,"jquery":20,"three":23}],14:[function(require,module,exports){
 "use strict";
 
 var THREE = require("three");
@@ -4525,7 +4535,93 @@ module.exports.createCrumpledGarbage = function (options) {
   return new THREE.ParametricGeometry(garbage, slices, stacks);
 };
 
-},{"three":21}],15:[function(require,module,exports){
+},{"three":23}],15:[function(require,module,exports){
+"use strict";
+
+var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var $ = require("jquery");
+var Odometer = require("odometer");
+
+var ScoreKeeper = exports.ScoreKeeper = (function () {
+  function ScoreKeeper(options) {
+    _classCallCheck(this, ScoreKeeper);
+
+    if (!options) options = {};
+    this.$scoreZone = options.$scoreZone || $(".score-zone");
+    this.$scoreEl = options.$scoreEl || $("#rain-score");
+    this.score = options.initialScore || 0;
+    this.isShowing = false;
+
+    this.odometer = new Odometer({
+      el: this.$scoreEl.get(0),
+      value: this.score,
+      theme: "default",
+      duration: 1500
+    });
+  }
+
+  _createClass(ScoreKeeper, {
+    show: {
+      value: function show(dur) {
+        var _this = this;
+
+        if (!dur) {
+          this.$scoreZone.show();
+          this.isShowing = true;
+        } else {
+          this.$scoreZone.fadeIn(dur, function () {
+            _this.isShowing = true;
+          });
+        }
+      }
+    },
+    hide: {
+      value: function hide(dur) {
+        var _this = this;
+
+        if (!dur) {
+          this.$scoreZone.hide();
+          this.isShowing = false;
+        } else {
+          this.$scoreZone.fadeOut(dur, function () {
+            _this.isShowing = false;
+          });
+        }
+      }
+    },
+    addScore: {
+      value: function addScore(increment) {
+        this.setScore(increment + this.score);
+      }
+    },
+    drain: {
+      value: function drain() {
+        this.setScore(0);
+      }
+    },
+    setScore: {
+      value: function setScore(score) {
+        if (!this.isShowing) {
+          this.show();
+        }
+
+        this.score = score;
+        this.odometer.update(score);
+      }
+    }
+  });
+
+  return ScoreKeeper;
+})();
+
+},{"jquery":20,"odometer":22}],16:[function(require,module,exports){
 "use strict";
 
 var THREE = require("three");
@@ -4744,7 +4840,7 @@ SheenMesh.prototype.fallToFloor = function (threshold, speed) {
 SheenMesh.prototype.additionalInit = function () {};
 SheenMesh.prototype.additionalRender = function () {};
 
-},{"./lib/physi.js":9,"./util/model-loader":18,"kutility":20,"three":21}],16:[function(require,module,exports){
+},{"./lib/physi.js":9,"./util/model-loader":19,"kutility":21,"three":23}],17:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -4922,7 +5018,7 @@ var SheenScene = exports.SheenScene = (function () {
   return SheenScene;
 })();
 
-},{"jquery":19,"three":21}],17:[function(require,module,exports){
+},{"jquery":20,"three":23}],18:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -5085,7 +5181,7 @@ THREE.typeface_js = window._typeface_js;
 
 // lol
 
-},{"jquery":19,"three":21}],18:[function(require,module,exports){
+},{"jquery":20,"three":23}],19:[function(require,module,exports){
 "use strict";
 
 var THREE = require("three");
@@ -5131,7 +5227,7 @@ function fetch(name, callback) {
   callback(geometry, materials);
 }
 
-},{"three":21}],19:[function(require,module,exports){
+},{"three":23}],20:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
@@ -14338,7 +14434,7 @@ return jQuery;
 
 }));
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 
 /* export something */
 module.exports = new Kutility();
@@ -14912,7 +15008,662 @@ Kutility.prototype.blur = function(el, x) {
   this.setFilter(el, cf + f);
 };
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
+(function() {
+  var COUNT_FRAMERATE, COUNT_MS_PER_FRAME, DIGIT_FORMAT, DIGIT_HTML, DIGIT_SPEEDBOOST, DURATION, FORMAT_MARK_HTML, FORMAT_PARSER, FRAMERATE, FRAMES_PER_VALUE, MS_PER_FRAME, MutationObserver, Odometer, RIBBON_HTML, TRANSITION_END_EVENTS, TRANSITION_SUPPORT, VALUE_HTML, addClass, createFromHTML, fractionalPart, now, removeClass, requestAnimationFrame, round, transitionCheckStyles, trigger, truncate, wrapJQuery, _jQueryWrapped, _old, _ref, _ref1,
+    __slice = [].slice;
+
+  VALUE_HTML = '<span class="odometer-value"></span>';
+
+  RIBBON_HTML = '<span class="odometer-ribbon"><span class="odometer-ribbon-inner">' + VALUE_HTML + '</span></span>';
+
+  DIGIT_HTML = '<span class="odometer-digit"><span class="odometer-digit-spacer">8</span><span class="odometer-digit-inner">' + RIBBON_HTML + '</span></span>';
+
+  FORMAT_MARK_HTML = '<span class="odometer-formatting-mark"></span>';
+
+  DIGIT_FORMAT = '(,ddd).dd';
+
+  FORMAT_PARSER = /^\(?([^)]*)\)?(?:(.)(d+))?$/;
+
+  FRAMERATE = 30;
+
+  DURATION = 2000;
+
+  COUNT_FRAMERATE = 20;
+
+  FRAMES_PER_VALUE = 2;
+
+  DIGIT_SPEEDBOOST = .5;
+
+  MS_PER_FRAME = 1000 / FRAMERATE;
+
+  COUNT_MS_PER_FRAME = 1000 / COUNT_FRAMERATE;
+
+  TRANSITION_END_EVENTS = 'transitionend webkitTransitionEnd oTransitionEnd otransitionend MSTransitionEnd';
+
+  transitionCheckStyles = document.createElement('div').style;
+
+  TRANSITION_SUPPORT = (transitionCheckStyles.transition != null) || (transitionCheckStyles.webkitTransition != null) || (transitionCheckStyles.mozTransition != null) || (transitionCheckStyles.oTransition != null);
+
+  requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+
+  MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+
+  createFromHTML = function(html) {
+    var el;
+    el = document.createElement('div');
+    el.innerHTML = html;
+    return el.children[0];
+  };
+
+  removeClass = function(el, name) {
+    return el.className = el.className.replace(new RegExp("(^| )" + (name.split(' ').join('|')) + "( |$)", 'gi'), ' ');
+  };
+
+  addClass = function(el, name) {
+    removeClass(el, name);
+    return el.className += " " + name;
+  };
+
+  trigger = function(el, name) {
+    var evt;
+    if (document.createEvent != null) {
+      evt = document.createEvent('HTMLEvents');
+      evt.initEvent(name, true, true);
+      return el.dispatchEvent(evt);
+    }
+  };
+
+  now = function() {
+    var _ref, _ref1;
+    return (_ref = (_ref1 = window.performance) != null ? typeof _ref1.now === "function" ? _ref1.now() : void 0 : void 0) != null ? _ref : +(new Date);
+  };
+
+  round = function(val, precision) {
+    if (precision == null) {
+      precision = 0;
+    }
+    if (!precision) {
+      return Math.round(val);
+    }
+    val *= Math.pow(10, precision);
+    val += 0.5;
+    val = Math.floor(val);
+    return val /= Math.pow(10, precision);
+  };
+
+  truncate = function(val) {
+    if (val < 0) {
+      return Math.ceil(val);
+    } else {
+      return Math.floor(val);
+    }
+  };
+
+  fractionalPart = function(val) {
+    return val - round(val);
+  };
+
+  _jQueryWrapped = false;
+
+  (wrapJQuery = function() {
+    var property, _i, _len, _ref, _results;
+    if (_jQueryWrapped) {
+      return;
+    }
+    if (window.jQuery != null) {
+      _jQueryWrapped = true;
+      _ref = ['html', 'text'];
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        property = _ref[_i];
+        _results.push((function(property) {
+          var old;
+          old = window.jQuery.fn[property];
+          return window.jQuery.fn[property] = function(val) {
+            var _ref1;
+            if ((val == null) || (((_ref1 = this[0]) != null ? _ref1.odometer : void 0) == null)) {
+              return old.apply(this, arguments);
+            }
+            return this[0].odometer.update(val);
+          };
+        })(property));
+      }
+      return _results;
+    }
+  })();
+
+  setTimeout(wrapJQuery, 0);
+
+  Odometer = (function() {
+    function Odometer(options) {
+      var e, k, property, v, _base, _i, _len, _ref, _ref1, _ref2,
+        _this = this;
+      this.options = options;
+      this.el = this.options.el;
+      if (this.el.odometer != null) {
+        return this.el.odometer;
+      }
+      this.el.odometer = this;
+      _ref = Odometer.options;
+      for (k in _ref) {
+        v = _ref[k];
+        if (this.options[k] == null) {
+          this.options[k] = v;
+        }
+      }
+      if ((_base = this.options).duration == null) {
+        _base.duration = DURATION;
+      }
+      this.MAX_VALUES = ((this.options.duration / MS_PER_FRAME) / FRAMES_PER_VALUE) | 0;
+      this.resetFormat();
+      this.value = this.cleanValue((_ref1 = this.options.value) != null ? _ref1 : '');
+      this.renderInside();
+      this.render();
+      try {
+        _ref2 = ['innerHTML', 'innerText', 'textContent'];
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          property = _ref2[_i];
+          if (this.el[property] != null) {
+            (function(property) {
+              return Object.defineProperty(_this.el, property, {
+                get: function() {
+                  var _ref3;
+                  if (property === 'innerHTML') {
+                    return _this.inside.outerHTML;
+                  } else {
+                    return (_ref3 = _this.inside.innerText) != null ? _ref3 : _this.inside.textContent;
+                  }
+                },
+                set: function(val) {
+                  return _this.update(val);
+                }
+              });
+            })(property);
+          }
+        }
+      } catch (_error) {
+        e = _error;
+        this.watchForMutations();
+      }
+      this;
+    }
+
+    Odometer.prototype.renderInside = function() {
+      this.inside = document.createElement('div');
+      this.inside.className = 'odometer-inside';
+      this.el.innerHTML = '';
+      return this.el.appendChild(this.inside);
+    };
+
+    Odometer.prototype.watchForMutations = function() {
+      var e,
+        _this = this;
+      if (MutationObserver == null) {
+        return;
+      }
+      try {
+        if (this.observer == null) {
+          this.observer = new MutationObserver(function(mutations) {
+            var newVal;
+            newVal = _this.el.innerText;
+            _this.renderInside();
+            _this.render(_this.value);
+            return _this.update(newVal);
+          });
+        }
+        this.watchMutations = true;
+        return this.startWatchingMutations();
+      } catch (_error) {
+        e = _error;
+      }
+    };
+
+    Odometer.prototype.startWatchingMutations = function() {
+      if (this.watchMutations) {
+        return this.observer.observe(this.el, {
+          childList: true
+        });
+      }
+    };
+
+    Odometer.prototype.stopWatchingMutations = function() {
+      var _ref;
+      return (_ref = this.observer) != null ? _ref.disconnect() : void 0;
+    };
+
+    Odometer.prototype.cleanValue = function(val) {
+      var _ref;
+      if (typeof val === 'string') {
+        val = val.replace((_ref = this.format.radix) != null ? _ref : '.', '<radix>');
+        val = val.replace(/[.,]/g, '');
+        val = val.replace('<radix>', '.');
+        val = parseFloat(val, 10) || 0;
+      }
+      return round(val, this.format.precision);
+    };
+
+    Odometer.prototype.bindTransitionEnd = function() {
+      var event, renderEnqueued, _i, _len, _ref, _results,
+        _this = this;
+      if (this.transitionEndBound) {
+        return;
+      }
+      this.transitionEndBound = true;
+      renderEnqueued = false;
+      _ref = TRANSITION_END_EVENTS.split(' ');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        event = _ref[_i];
+        _results.push(this.el.addEventListener(event, function() {
+          if (renderEnqueued) {
+            return true;
+          }
+          renderEnqueued = true;
+          setTimeout(function() {
+            _this.render();
+            renderEnqueued = false;
+            return trigger(_this.el, 'odometerdone');
+          }, 0);
+          return true;
+        }, false));
+      }
+      return _results;
+    };
+
+    Odometer.prototype.resetFormat = function() {
+      var format, fractional, parsed, precision, radix, repeating, _ref, _ref1;
+      format = (_ref = this.options.format) != null ? _ref : DIGIT_FORMAT;
+      format || (format = 'd');
+      parsed = FORMAT_PARSER.exec(format);
+      if (!parsed) {
+        throw new Error("Odometer: Unparsable digit format");
+      }
+      _ref1 = parsed.slice(1, 4), repeating = _ref1[0], radix = _ref1[1], fractional = _ref1[2];
+      precision = (fractional != null ? fractional.length : void 0) || 0;
+      return this.format = {
+        repeating: repeating,
+        radix: radix,
+        precision: precision
+      };
+    };
+
+    Odometer.prototype.render = function(value) {
+      var classes, cls, match, newClasses, theme, _i, _len;
+      if (value == null) {
+        value = this.value;
+      }
+      this.stopWatchingMutations();
+      this.resetFormat();
+      this.inside.innerHTML = '';
+      theme = this.options.theme;
+      classes = this.el.className.split(' ');
+      newClasses = [];
+      for (_i = 0, _len = classes.length; _i < _len; _i++) {
+        cls = classes[_i];
+        if (!cls.length) {
+          continue;
+        }
+        if (match = /^odometer-theme-(.+)$/.exec(cls)) {
+          theme = match[1];
+          continue;
+        }
+        if (/^odometer(-|$)/.test(cls)) {
+          continue;
+        }
+        newClasses.push(cls);
+      }
+      newClasses.push('odometer');
+      if (!TRANSITION_SUPPORT) {
+        newClasses.push('odometer-no-transitions');
+      }
+      if (theme) {
+        newClasses.push("odometer-theme-" + theme);
+      } else {
+        newClasses.push("odometer-auto-theme");
+      }
+      this.el.className = newClasses.join(' ');
+      this.ribbons = {};
+      this.formatDigits(value);
+      return this.startWatchingMutations();
+    };
+
+    Odometer.prototype.formatDigits = function(value) {
+      var digit, valueDigit, valueString, wholePart, _i, _j, _len, _len1, _ref, _ref1;
+      this.digits = [];
+      if (this.options.formatFunction) {
+        valueString = this.options.formatFunction(value);
+        _ref = valueString.split('').reverse();
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          valueDigit = _ref[_i];
+          if (valueDigit.match(/0-9/)) {
+            digit = this.renderDigit();
+            digit.querySelector('.odometer-value').innerHTML = valueDigit;
+            this.digits.push(digit);
+            this.insertDigit(digit);
+          } else {
+            this.addSpacer(valueDigit);
+          }
+        }
+      } else {
+        wholePart = !this.format.precision || !fractionalPart(value) || false;
+        _ref1 = value.toString().split('').reverse();
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          digit = _ref1[_j];
+          if (digit === '.') {
+            wholePart = true;
+          }
+          this.addDigit(digit, wholePart);
+        }
+      }
+    };
+
+    Odometer.prototype.update = function(newValue) {
+      var diff,
+        _this = this;
+      newValue = this.cleanValue(newValue);
+      if (!(diff = newValue - this.value)) {
+        return;
+      }
+      removeClass(this.el, 'odometer-animating-up odometer-animating-down odometer-animating');
+      if (diff > 0) {
+        addClass(this.el, 'odometer-animating-up');
+      } else {
+        addClass(this.el, 'odometer-animating-down');
+      }
+      this.stopWatchingMutations();
+      this.animate(newValue);
+      this.startWatchingMutations();
+      setTimeout(function() {
+        _this.el.offsetHeight;
+        return addClass(_this.el, 'odometer-animating');
+      }, 0);
+      return this.value = newValue;
+    };
+
+    Odometer.prototype.renderDigit = function() {
+      return createFromHTML(DIGIT_HTML);
+    };
+
+    Odometer.prototype.insertDigit = function(digit, before) {
+      if (before != null) {
+        return this.inside.insertBefore(digit, before);
+      } else if (!this.inside.children.length) {
+        return this.inside.appendChild(digit);
+      } else {
+        return this.inside.insertBefore(digit, this.inside.children[0]);
+      }
+    };
+
+    Odometer.prototype.addSpacer = function(chr, before, extraClasses) {
+      var spacer;
+      spacer = createFromHTML(FORMAT_MARK_HTML);
+      spacer.innerHTML = chr;
+      if (extraClasses) {
+        addClass(spacer, extraClasses);
+      }
+      return this.insertDigit(spacer, before);
+    };
+
+    Odometer.prototype.addDigit = function(value, repeating) {
+      var chr, digit, resetted, _ref;
+      if (repeating == null) {
+        repeating = true;
+      }
+      if (value === '-') {
+        return this.addSpacer(value, null, 'odometer-negation-mark');
+      }
+      if (value === '.') {
+        return this.addSpacer((_ref = this.format.radix) != null ? _ref : '.', null, 'odometer-radix-mark');
+      }
+      if (repeating) {
+        resetted = false;
+        while (true) {
+          if (!this.format.repeating.length) {
+            if (resetted) {
+              throw new Error("Bad odometer format without digits");
+            }
+            this.resetFormat();
+            resetted = true;
+          }
+          chr = this.format.repeating[this.format.repeating.length - 1];
+          this.format.repeating = this.format.repeating.substring(0, this.format.repeating.length - 1);
+          if (chr === 'd') {
+            break;
+          }
+          this.addSpacer(chr);
+        }
+      }
+      digit = this.renderDigit();
+      digit.querySelector('.odometer-value').innerHTML = value;
+      this.digits.push(digit);
+      return this.insertDigit(digit);
+    };
+
+    Odometer.prototype.animate = function(newValue) {
+      if (!TRANSITION_SUPPORT || this.options.animation === 'count') {
+        return this.animateCount(newValue);
+      } else {
+        return this.animateSlide(newValue);
+      }
+    };
+
+    Odometer.prototype.animateCount = function(newValue) {
+      var cur, diff, last, start, tick,
+        _this = this;
+      if (!(diff = +newValue - this.value)) {
+        return;
+      }
+      start = last = now();
+      cur = this.value;
+      return (tick = function() {
+        var delta, dist, fraction;
+        if ((now() - start) > _this.options.duration) {
+          _this.value = newValue;
+          _this.render();
+          trigger(_this.el, 'odometerdone');
+          return;
+        }
+        delta = now() - last;
+        if (delta > COUNT_MS_PER_FRAME) {
+          last = now();
+          fraction = delta / _this.options.duration;
+          dist = diff * fraction;
+          cur += dist;
+          _this.render(Math.round(cur));
+        }
+        if (requestAnimationFrame != null) {
+          return requestAnimationFrame(tick);
+        } else {
+          return setTimeout(tick, COUNT_MS_PER_FRAME);
+        }
+      })();
+    };
+
+    Odometer.prototype.getDigitCount = function() {
+      var i, max, value, values, _i, _len;
+      values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      for (i = _i = 0, _len = values.length; _i < _len; i = ++_i) {
+        value = values[i];
+        values[i] = Math.abs(value);
+      }
+      max = Math.max.apply(Math, values);
+      return Math.ceil(Math.log(max + 1) / Math.log(10));
+    };
+
+    Odometer.prototype.getFractionalDigitCount = function() {
+      var i, parser, parts, value, values, _i, _len;
+      values = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      parser = /^\-?\d*\.(\d*?)0*$/;
+      for (i = _i = 0, _len = values.length; _i < _len; i = ++_i) {
+        value = values[i];
+        values[i] = value.toString();
+        parts = parser.exec(values[i]);
+        if (parts == null) {
+          values[i] = 0;
+        } else {
+          values[i] = parts[1].length;
+        }
+      }
+      return Math.max.apply(Math, values);
+    };
+
+    Odometer.prototype.resetDigits = function() {
+      this.digits = [];
+      this.ribbons = [];
+      this.inside.innerHTML = '';
+      return this.resetFormat();
+    };
+
+    Odometer.prototype.animateSlide = function(newValue) {
+      var boosted, cur, diff, digitCount, digits, dist, end, fractionalCount, frame, frames, i, incr, j, mark, numEl, oldValue, start, _base, _i, _j, _k, _l, _len, _len1, _len2, _m, _ref, _results;
+      oldValue = this.value;
+      fractionalCount = this.getFractionalDigitCount(oldValue, newValue);
+      if (fractionalCount) {
+        newValue = newValue * Math.pow(10, fractionalCount);
+        oldValue = oldValue * Math.pow(10, fractionalCount);
+      }
+      if (!(diff = newValue - oldValue)) {
+        return;
+      }
+      this.bindTransitionEnd();
+      digitCount = this.getDigitCount(oldValue, newValue);
+      digits = [];
+      boosted = 0;
+      for (i = _i = 0; 0 <= digitCount ? _i < digitCount : _i > digitCount; i = 0 <= digitCount ? ++_i : --_i) {
+        start = truncate(oldValue / Math.pow(10, digitCount - i - 1));
+        end = truncate(newValue / Math.pow(10, digitCount - i - 1));
+        dist = end - start;
+        if (Math.abs(dist) > this.MAX_VALUES) {
+          frames = [];
+          incr = dist / (this.MAX_VALUES + this.MAX_VALUES * boosted * DIGIT_SPEEDBOOST);
+          cur = start;
+          while ((dist > 0 && cur < end) || (dist < 0 && cur > end)) {
+            frames.push(Math.round(cur));
+            cur += incr;
+          }
+          if (frames[frames.length - 1] !== end) {
+            frames.push(end);
+          }
+          boosted++;
+        } else {
+          frames = (function() {
+            _results = [];
+            for (var _j = start; start <= end ? _j <= end : _j >= end; start <= end ? _j++ : _j--){ _results.push(_j); }
+            return _results;
+          }).apply(this);
+        }
+        for (i = _k = 0, _len = frames.length; _k < _len; i = ++_k) {
+          frame = frames[i];
+          frames[i] = Math.abs(frame % 10);
+        }
+        digits.push(frames);
+      }
+      this.resetDigits();
+      _ref = digits.reverse();
+      for (i = _l = 0, _len1 = _ref.length; _l < _len1; i = ++_l) {
+        frames = _ref[i];
+        if (!this.digits[i]) {
+          this.addDigit(' ', i >= fractionalCount);
+        }
+        if ((_base = this.ribbons)[i] == null) {
+          _base[i] = this.digits[i].querySelector('.odometer-ribbon-inner');
+        }
+        this.ribbons[i].innerHTML = '';
+        if (diff < 0) {
+          frames = frames.reverse();
+        }
+        for (j = _m = 0, _len2 = frames.length; _m < _len2; j = ++_m) {
+          frame = frames[j];
+          numEl = document.createElement('div');
+          numEl.className = 'odometer-value';
+          numEl.innerHTML = frame;
+          this.ribbons[i].appendChild(numEl);
+          if (j === frames.length - 1) {
+            addClass(numEl, 'odometer-last-value');
+          }
+          if (j === 0) {
+            addClass(numEl, 'odometer-first-value');
+          }
+        }
+      }
+      if (start < 0) {
+        this.addDigit('-');
+      }
+      mark = this.inside.querySelector('.odometer-radix-mark');
+      if (mark != null) {
+        mark.parent.removeChild(mark);
+      }
+      if (fractionalCount) {
+        return this.addSpacer(this.format.radix, this.digits[fractionalCount - 1], 'odometer-radix-mark');
+      }
+    };
+
+    return Odometer;
+
+  })();
+
+  Odometer.options = (_ref = window.odometerOptions) != null ? _ref : {};
+
+  setTimeout(function() {
+    var k, v, _base, _ref1, _results;
+    if (window.odometerOptions) {
+      _ref1 = window.odometerOptions;
+      _results = [];
+      for (k in _ref1) {
+        v = _ref1[k];
+        _results.push((_base = Odometer.options)[k] != null ? (_base = Odometer.options)[k] : _base[k] = v);
+      }
+      return _results;
+    }
+  }, 0);
+
+  Odometer.init = function() {
+    var el, elements, _i, _len, _ref1, _results;
+    if (document.querySelectorAll == null) {
+      return;
+    }
+    elements = document.querySelectorAll(Odometer.options.selector || '.odometer');
+    _results = [];
+    for (_i = 0, _len = elements.length; _i < _len; _i++) {
+      el = elements[_i];
+      _results.push(el.odometer = new Odometer({
+        el: el,
+        value: (_ref1 = el.innerText) != null ? _ref1 : el.textContent
+      }));
+    }
+    return _results;
+  };
+
+  if ((((_ref1 = document.documentElement) != null ? _ref1.doScroll : void 0) != null) && (document.createEventObject != null)) {
+    _old = document.onreadystatechange;
+    document.onreadystatechange = function() {
+      if (document.readyState === 'complete' && Odometer.options.auto !== false) {
+        Odometer.init();
+      }
+      return _old != null ? _old.apply(this, arguments) : void 0;
+    };
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (Odometer.options.auto !== false) {
+        return Odometer.init();
+      }
+    }, false);
+  }
+
+  if (typeof define === 'function' && define.amd) {
+    define(['jquery'], function() {
+      return Odometer;
+    });
+  } else if (typeof exports !== "undefined" && exports !== null) {
+    module.exports = Odometer;
+  } else {
+    window.Odometer = Odometer;
+  }
+
+}).call(this);
+
+},{}],23:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**

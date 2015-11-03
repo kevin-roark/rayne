@@ -8,10 +8,10 @@ var SheenMesh = require('../sheen-mesh');
 var geometryUtil = require('../geometry-util');
 var parametricGeometries = require('../parametric-geometries');
 import {GalleryLayout} from './gallery-layout.es6';
+import {ScoreKeeper} from '../scorekeeper.es6';
 
 /* TODO:
  * 1) maybe do hands
- * 4) GAMEIFICATION
  * 5) physical switch that flips when garbage is added
  */
 
@@ -40,14 +40,20 @@ export class RainRoom extends GalleryLayout {
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
+    this.scorekeeper = new ScoreKeeper();
+    this.rainCollisionSet = {};
 
     if (!this.domMode) {
       this.setupRainParticleSystem();
 
       this.ground = createGround(this.roomLength, this.yLevel, (otherObject) => {
-        // remove anything once it hits the ground
-        // TODO: would be cool to have a particle explosion at the point of impact lol
         //this.container.remove(otherObject);
+
+        // only add score if this is the first time object hits ground
+        if (otherObject._media && !this.rainCollisionSet[otherObject._media.id]) {
+          this.scorekeeper.addScore(1);
+          this.rainCollisionSet[otherObject._media.id] = true;
+        }
       });
       this.ground.addTo(this.container);
 
@@ -164,6 +170,7 @@ export class RainRoom extends GalleryLayout {
 
     var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
     mesh.castShadow = true;
+    mesh._media = media;
 
     return mesh;
   }
@@ -178,6 +185,7 @@ export class RainRoom extends GalleryLayout {
 
     var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
     mesh.castShadow = true;
+    mesh._media = media;
 
     return mesh;
   }
@@ -192,6 +200,7 @@ export class RainRoom extends GalleryLayout {
 
     var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
     mesh.castShadow = true;
+    mesh._media = media;
 
     return mesh;
   }
