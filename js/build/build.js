@@ -916,12 +916,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var THREE = require("three");
-var Physijs = require("./lib/physi.js");
 var $ = require("jquery");
-var kt = require("kutility");
-var SheenMesh = require("./sheen-mesh");
-var imageUtil = require("./image-util");
-var geometryUtil = require("./geometry-util");
 
 var RainRoom = require("./gallery-layouts/rainroom.es6").RainRoom;
 
@@ -982,7 +977,7 @@ var Gallery = exports.Gallery = (function () {
   return Gallery;
 })();
 
-},{"./gallery-layouts/rainroom.es6":4,"./geometry-util":6,"./image-util":7,"./lib/physi.js":9,"./sheen-mesh":15,"jquery":19,"kutility":20,"three":21}],6:[function(require,module,exports){
+},{"./gallery-layouts/rainroom.es6":4,"jquery":19,"three":21}],6:[function(require,module,exports){
 "use strict";
 
 module.exports.computeShit = function (geometry) {

@@ -1,11 +1,6 @@
 
 let THREE = require('three');
-let Physijs = require('./lib/physi.js');
 let $ = require('jquery');
-let kt = require('kutility');
-let SheenMesh = require('./sheen-mesh');
-let imageUtil = require('./image-util');
-let geometryUtil = require('./geometry-util');
 
 import {RainRoom} from './gallery-layouts/rainroom.es6';
 
