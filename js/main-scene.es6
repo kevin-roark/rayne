@@ -30,12 +30,12 @@ export class MainScene extends SheenScene {
     this.loading = true;
     this.updateLoadingView();
 
-    // this.sound = new buzz.sound('/media/falling3', {
-    //   formats: ["mp3", "ogg"],
-    //   webAudioApi: true,
-    //   volume: 100
-    // });
-    buzz.defaults.duration = 2000;
+     this.sound = new buzz.sound('/media/raindrops', {
+       formats: ["mp3", "ogg"],
+       webAudioApi: true,
+       volume: 100
+     });
+    buzz.defaults.duration = 3000;
 
     this.makeLights();
 
@@ -153,7 +153,7 @@ export class MainScene extends SheenScene {
       $('#mobile-error-overlay').fadeOut(1000);
     }
 
-    //this.sound.loop().play().fadeIn().fadeOut();
+    this.sound.loop().play().fadeIn().fadeOut();
 
     this.rayne.layout.start();
 

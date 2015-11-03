@@ -27,7 +27,7 @@ export class RainRoom extends GalleryLayout {
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRainParticleY = options.initialRaindropY || 100;
+    this.initialRainParticleY = options.initialRaindropY || 300;
     this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
@@ -189,7 +189,7 @@ export class RainRoom extends GalleryLayout {
       wall.mesh.material.needsUpdate = true;
     }
     else {
-      wall.mesh.material = new THREE.MeshPhongMaterial({
+      wall.mesh.material = new THREE.MeshLambertMaterial({
         map: this.createTexture(media),
         side: THREE.DoubleSide,
       });
@@ -265,6 +265,8 @@ export class RainRoom extends GalleryLayout {
   setupRainParticleSystem() {
     var particlesPerEmitter = 450;
 
+
+
     this.rainParticleGroup = new SPE.Group({
       texture: {value: THREE.ImageUtils.loadTexture('/media/rain.png')},
       maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
@@ -288,7 +290,7 @@ export class RainRoom extends GalleryLayout {
         var z = -this.roomLength/2 + (j * this.spacePerEmitter);
 
         var emitter = new SPE.Emitter({
-          maxAge: {value: 2.6},
+          maxAge: {value: 9},
           position: {
             value: new THREE.Vector3(x, this.initialRainParticleY, z),
             spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
@@ -326,8 +328,12 @@ function createGround(length, y, collisionHandler) {
     meshCreator: (callback) => {
       let geometry = new THREE.PlaneBufferGeometry(length, length);
       geometryUtil.computeShit(geometry);
-
+      var groundTexture = THREE.ImageUtils.loadTexture('/media/lino007b.jpg');
+      groundTexture.wrapS = THREE.RepeatWrapping;
+      groundTexture.wrapT = THREE.RepeatWrapping;
+      groundTexture.repeat.set( 20, 20 );
       let rawMaterial = new THREE.MeshPhongMaterial({
+        map: groundTexture,
         color: 0x101010,
         side: THREE.DoubleSide
       });
@@ -396,7 +402,7 @@ function createWall(options) {
 
       geometryUtil.computeShit(geometry);
 
-      let rawMaterial = new THREE.MeshPhongMaterial({
+      let rawMaterial = new THREE.MeshLambertMaterial({
         color: 0x101010,
         side: THREE.DoubleSide
       });

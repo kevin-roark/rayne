@@ -30,10 +30,10 @@ module.exports = function (camera, options) {
 
 	this.jumpEnabled = options.jumpEnabled !== undefined ? options.jumpEnabled : true;
 	this.canJump = true;
-	this.jumpVelocityBoost = 350.0;
+	this.jumpVelocityBoost = 100.0;
 	this.jumpVelocity = 0.0;
 	this.jumpGroundThreshold = options.jumpGroundThreshold || 10.0;
-	this.mass = options.mass || 100.0;
+	this.mass = options.mass || 10.0;
 
 	this.dragToLook = options.dragToLook || false;
 	this.autoForward = options.autoForward || false;

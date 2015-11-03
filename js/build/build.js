@@ -33,10 +33,10 @@ module.exports = function (camera, options) {
 
 	this.jumpEnabled = options.jumpEnabled !== undefined ? options.jumpEnabled : true;
 	this.canJump = true;
-	this.jumpVelocityBoost = 350;
+	this.jumpVelocityBoost = 100;
 	this.jumpVelocity = 0;
 	this.jumpGroundThreshold = options.jumpGroundThreshold || 10;
-	this.mass = options.mass || 100;
+	this.mass = options.mass || 10;
 
 	this.dragToLook = options.dragToLook || false;
 	this.autoForward = options.autoForward || false;
@@ -571,7 +571,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRainParticleY = options.initialRaindropY || 100;
+    this.initialRainParticleY = options.initialRaindropY || 300;
     this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
@@ -736,7 +736,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           wall.mesh.material.map = this.createTexture(media);
           wall.mesh.material.needsUpdate = true;
         } else {
-          wall.mesh.material = new THREE.MeshPhongMaterial({
+          wall.mesh.material = new THREE.MeshLambertMaterial({
             map: this.createTexture(media),
             side: THREE.DoubleSide });
           wall.mesh.needsUpdate = true;
@@ -839,7 +839,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             var z = -this.roomLength / 2 + j * this.spacePerEmitter;
 
             var emitter = new SPE.Emitter({
-              maxAge: { value: 2.6 },
+              maxAge: { value: 9 },
               position: {
                 value: new THREE.Vector3(x, this.initialRainParticleY, z),
                 spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
@@ -880,8 +880,12 @@ function createGround(length, y, collisionHandler) {
     meshCreator: function (callback) {
       var geometry = new THREE.PlaneBufferGeometry(length, length);
       geometryUtil.computeShit(geometry);
-
+      var groundTexture = THREE.ImageUtils.loadTexture("/media/lino007b.jpg");
+      groundTexture.wrapS = THREE.RepeatWrapping;
+      groundTexture.wrapT = THREE.RepeatWrapping;
+      groundTexture.repeat.set(20, 20);
       var rawMaterial = new THREE.MeshPhongMaterial({
+        map: groundTexture,
         color: 1052688,
         side: THREE.DoubleSide
       });
@@ -950,7 +954,7 @@ function createWall(options) {
 
       geometryUtil.computeShit(geometry);
 
-      var rawMaterial = new THREE.MeshPhongMaterial({
+      var rawMaterial = new THREE.MeshLambertMaterial({
         color: 1052688,
         side: THREE.DoubleSide
       });
@@ -4180,12 +4184,12 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         this.loading = true;
         this.updateLoadingView();
 
-        // this.sound = new buzz.sound('/media/falling3', {
-        //   formats: ["mp3", "ogg"],
-        //   webAudioApi: true,
-        //   volume: 100
-        // });
-        buzz.defaults.duration = 2000;
+        this.sound = new buzz.sound("/media/raindrops", {
+          formats: ["mp3", "ogg"],
+          webAudioApi: true,
+          volume: 100
+        });
+        buzz.defaults.duration = 3000;
 
         this.makeLights();
 
@@ -4315,7 +4319,7 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
           $("#mobile-error-overlay").fadeOut(1000);
         }
 
-        //this.sound.loop().play().fadeIn().fadeOut();
+        this.sound.loop().play().fadeIn().fadeOut();
 
         this.rayne.layout.start();
 
