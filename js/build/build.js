@@ -578,9 +578,12 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.raindropSizeVariance = options.raindropSizeVariance || 1;
     this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0028;
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
+    this.ghostSizeVariance = options.ghostSizeVariance || 6;
+    this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
+    this.maxGhostLength = options.maxGhostLength || 18;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
-    this.numActiveMeshes = options.numActiveMeshes || 666;
+    this.numActiveMeshes = options.numActiveMeshes || 500;
 
     this.hasStarted = false;
     this.emitters = [];
@@ -723,7 +726,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         var material = this.createRainMaterial(media);
         material.opacity = Math.random() * 0.25 + 0.7; // opacity between 0.7 and 0.95
-        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.2); // material, "friction", "restitution"
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
@@ -734,12 +737,14 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     createGarbage: {
       value: function createGarbage(media) {
-        var length = Math.round(Math.random() * 6 + 2);
+        var length = Math.min(this.maxGhostLength, Math.round(Math.random() * this.ghostSizeVariance + 2));
+        this.ghostSizeVariance *= this.ghostSizeVarianceGrowthRate;
+
         var geometry = parametricGeometries.createCrumpledGarbage({ radius: length });
 
         var material = this.createRainMaterial(media);
         material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
-        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.5); // material, "friction", "restitution"
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
@@ -750,12 +755,14 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     createBox: {
       value: function createBox(media) {
-        var length = Math.round(Math.random() * 6 + 2);
+        var length = Math.min(this.maxGhostLength, Math.round(Math.random() * this.ghostSizeVariance + 2));
+        this.ghostSizeVariance *= this.ghostSizeVarianceGrowthRate;
+
         var geometry = new THREE.BoxGeometry(length, length * 0.75, 0.1);
 
         var material = this.createRainMaterial(media);
         material.opacity = Math.random() * 0.2 + 0.4; // opacity between 0.4 and 0.6
-        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.6); // material, "friction", "restitution"
+        var physicsMaterial = Physijs.createMaterial(material, 0.4, 0.4); // material, "friction", "restitution"
 
         var mesh = new Physijs.BoxMesh(geometry, physicsMaterial, 20); // geometry, material, "mass"
         mesh.castShadow = true;
@@ -776,7 +783,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     setupRainParticleSystem: {
       value: function setupRainParticleSystem() {
-        var particlesPerEmitter = 666;
+        var particlesPerEmitter = 500;
 
         this.rainParticleGroup = new SPE.Group({
           texture: { value: THREE.ImageUtils.loadTexture("/media/rain.png") },
