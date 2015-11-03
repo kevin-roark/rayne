@@ -21,27 +21,39 @@ export class RainRoom extends GalleryLayout {
     super(options);
 
     this.domMode = options.domMode || false;
-    this.xPosition = options.xPosition || 0;
-    this.zPosition = options.zPosition || 0;
+
+    // size config
     this.roomLength = options.roomLength || 300;
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
+
+    // rain particle config
+    this.initialRainParticleY = options.initialRaindropParticleY || 300;
+
+    // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRainParticleY = options.initialRaindropY || 300;
     this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.raindropSizeVariance = options.raindropSizeVariance || 1;
     this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0028;
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
+
+    // ghost / trash / alternative media config
+    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
     this.ghostSizeVariance = options.ghostSizeVariance || 6;
     this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
     this.maxGhostLength = options.maxGhostLength || 18;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
-    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
+
+    // wall update config
     this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
     this.numActiveMeshes = options.numActiveMeshes || 500;
 
+    // jump config
+    this.jumpLevels = options.jumpLevels || [{delay: 2000, boost: 150}, {delay: 6000, boost: 200}];
+
+    // non-configurable state properties
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
@@ -93,15 +105,24 @@ export class RainRoom extends GalleryLayout {
       // DO DOM
     }
     else {
+      // set up trash delay
       setTimeout(() => {
         this.canAddAlternativeMedia = true;
       }, this.timeToAddAlternativeMedia);
 
+      // set up the layout waterfall
       setTimeout(() => {
-        // set up the layout waterfall
         this.nextMediaToAddIndex = 0;
         this.layoutNextMedia();
       }, this.initialRaindropTime);
+
+      // set up jump level delays
+      this.jumpLevels.forEach((jumpLevel) => {
+        setTimeout(() => {
+          console.log('new jump velocity boost: ' + jumpLevel.boost);
+          this.controls.jumpVelocityBoost = jumpLevel.boost;
+        }, jumpLevel.delay);
+      });
     }
   }
 

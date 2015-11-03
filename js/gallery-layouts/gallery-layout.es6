@@ -8,8 +8,9 @@ export class GalleryLayout {
     // mandatory config
     this.container = options.container;
     this.media = options.media;
-    this.controlObject = options.controlObject;
-    this.pitchObject = options.pitchObject;
+    this.controls = options.controls;
+    this.controlObject = this.controls.getObject();
+    this.pitchObject = this.controls.pitchObject();
 
     // optional config
     this.yLevel = options.yLevel || 0;

@@ -8,8 +8,7 @@ export class Gallery {
 
   constructor(scene, options) {
     this.scene = scene;
-    this.controlObject = options.controlObject;
-    this.pitchObject = options.pitchObject;
+    this.controls = options.controls;
     this.domMode = options.domMode;
     this.yLevel = options.yLevel || 0;
     this.layoutCreator = (options) => { return new RainRoom(options); };
@@ -25,8 +24,7 @@ export class Gallery {
       this.layout = this.layoutCreator({
         domMode: this.domMode,
         container: this.scene, // NOTE: very important that container is the scene for physics to work
-        controlObject: this.controlObject,
-        pitchObject: this.pitchObject,
+        controls: this.controls,
         media: data,
         yLevel: this.yLevel
       });

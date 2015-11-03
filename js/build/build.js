@@ -33,7 +33,7 @@ module.exports = function (camera, options) {
 
 	this.jumpEnabled = options.jumpEnabled !== undefined ? options.jumpEnabled : true;
 	this.canJump = true;
-	this.jumpVelocityBoost = 100;
+	this.jumpVelocityBoost = options.jumpVelocityBoost || 100;
 	this.jumpVelocity = 0;
 	this.jumpGroundThreshold = options.jumpGroundThreshold || 10;
 	this.mass = options.mass || 10;
@@ -493,8 +493,9 @@ var GalleryLayout = exports.GalleryLayout = (function () {
     // mandatory config
     this.container = options.container;
     this.media = options.media;
-    this.controlObject = options.controlObject;
-    this.pitchObject = options.pitchObject;
+    this.controls = options.controls;
+    this.controlObject = this.controls.getObject();
+    this.pitchObject = this.controls.pitchObject();
 
     // optional config
     this.yLevel = options.yLevel || 0;
@@ -565,27 +566,39 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     _get(Object.getPrototypeOf(RainRoom.prototype), "constructor", this).call(this, options);
 
     this.domMode = options.domMode || false;
-    this.xPosition = options.xPosition || 0;
-    this.zPosition = options.zPosition || 0;
+
+    // size config
     this.roomLength = options.roomLength || 300;
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
+
+    // rain particle config
+    this.initialRainParticleY = options.initialRaindropParticleY || 300;
+
+    // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
-    this.initialRainParticleY = options.initialRaindropY || 300;
     this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 5000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.raindropSizeVariance = options.raindropSizeVariance || 1;
     this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.0028;
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
+
+    // ghost / trash / alternative media config
+    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
     this.ghostSizeVariance = options.ghostSizeVariance || 6;
     this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
     this.maxGhostLength = options.maxGhostLength || 18;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 30;
-    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
+
+    // wall update config
     this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
     this.numActiveMeshes = options.numActiveMeshes || 500;
 
+    // jump config
+    this.jumpLevels = options.jumpLevels || [{ delay: 2000, boost: 150 }, { delay: 6000, boost: 200 }];
+
+    // non-configurable state properties
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
@@ -632,15 +645,24 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         this.hasStarted = true;
 
         if (this.domMode) {} else {
+          // set up trash delay
           setTimeout(function () {
             _this.canAddAlternativeMedia = true;
           }, this.timeToAddAlternativeMedia);
 
+          // set up the layout waterfall
           setTimeout(function () {
-            // set up the layout waterfall
             _this.nextMediaToAddIndex = 0;
             _this.layoutNextMedia();
           }, this.initialRaindropTime);
+
+          // set up jump level delays
+          this.jumpLevels.forEach(function (jumpLevel) {
+            setTimeout(function () {
+              console.log("new jump velocity boost: " + jumpLevel.boost);
+              _this.controls.jumpVelocityBoost = jumpLevel.boost;
+            }, jumpLevel.delay);
+          });
         }
       }
     },
@@ -1015,8 +1037,7 @@ var Gallery = exports.Gallery = (function () {
     _classCallCheck(this, Gallery);
 
     this.scene = scene;
-    this.controlObject = options.controlObject;
-    this.pitchObject = options.pitchObject;
+    this.controls = options.controls;
     this.domMode = options.domMode;
     this.yLevel = options.yLevel || 0;
     this.layoutCreator = function (options) {
@@ -1038,8 +1059,7 @@ var Gallery = exports.Gallery = (function () {
           _this.layout = _this.layoutCreator({
             domMode: _this.domMode,
             container: _this.scene, // NOTE: very important that container is the scene for physics to work
-            controlObject: _this.controlObject,
-            pitchObject: _this.pitchObject,
+            controls: _this.controls,
             media: data,
             yLevel: _this.yLevel
           });
@@ -4213,8 +4233,7 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         // make all the galleries here
         this.rayne = new Gallery(this.scene, {
           domMode: this.onPhone,
-          controlObject: this.controlObject,
-          pitchObject: this.pitchObject,
+          controls: this.controls,
           yLevel: 0
         });
       }
@@ -4472,8 +4491,7 @@ var Sheen = (function (_ThreeBoiler) {
     this.scene.add(this.controls.getObject());
 
     this.mainScene = new MainScene(this.renderer, this.camera, this.scene, { onPhone: ON_PHONE });
-    this.mainScene.controlObject = this.controls.getObject();
-    this.mainScene.pitchObject = this.controls.pitchObject();
+    this.mainScene.controls = this.controls;
 
     this.clock = new THREE.Clock();
 

@@ -42,8 +42,7 @@ export class MainScene extends SheenScene {
     // make all the galleries here
     this.rayne = new Gallery(this.scene, {
       domMode: this.onPhone,
-      controlObject: this.controlObject,
-      pitchObject: this.pitchObject,
+      controls: this.controls,
       yLevel: 0
     });
   }
