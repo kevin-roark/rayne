@@ -189,8 +189,10 @@ export class RainRoom extends GalleryLayout {
       wall.mesh.material.needsUpdate = true;
     }
     else {
-      wall.mesh.material = this.createRainMaterial(media);
-      wall.mesh.material.opacity = 0.84;
+      wall.mesh.material = new THREE.MeshPhongMaterial({
+        map: this.createTexture(media),
+        side: THREE.DoubleSide,
+      });
       wall.mesh.needsUpdate = true;
     }
 
