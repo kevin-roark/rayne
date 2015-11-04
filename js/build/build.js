@@ -574,6 +574,9 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
     // rain particle config
     this.initialRainParticleY = options.initialRaindropParticleY || 300;
+    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 500;
+    this.initialParticlesPerEmitter = options.initialParticlesPerEmitter || 50;
+    this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 300 * 1000; // 5 minutes
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
@@ -663,6 +666,21 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
               _this.controls.jumpVelocityBoost = jumpLevel.boost;
             }, jumpLevel.delay);
           });
+
+          // set up rain particle growth interval
+          var particleGrowthStartTime = new Date();
+          this.particleGrowthInterval = setInterval(function () {
+            var timeElapsed = new Date() - particleGrowthStartTime;
+            var percentageOfMaxTimeElapsed = timeElapsed / _this.timeToReachMaxParticleTarget;
+            var totalParticlesToGrow = _this.maxParticlesPerEmitter - _this.initialParticlesPerEmitter;
+            var currentNumberOfParticles = _this.initialParticlesPerEmitter + Math.round(percentageOfMaxTimeElapsed * totalParticlesToGrow);
+            console.log("number of particles per emitter: " + currentNumberOfParticles);
+            _this.updateParticlesPerEmitter(Math.min(_this.maxParticlesPerEmitter, currentNumberOfParticles));
+
+            if (currentNumberOfParticles >= _this.maxParticlesPerEmitter) {
+              clearInterval(_this.particleGrowthInterval);
+            }
+          }, 2000); // update every 2 seconds
         }
       }
     },
@@ -840,11 +858,9 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     },
     setupRainParticleSystem: {
       value: function setupRainParticleSystem() {
-        var particlesPerEmitter = 450;
-
         this.rainParticleGroup = new SPE.Group({
           texture: { value: THREE.ImageUtils.loadTexture("/media/rain.png") },
-          maxParticleCount: particlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
+          maxParticleCount: 1 + this.maxParticlesPerEmitter * this.emittersPerWall * this.emittersPerWall,
           fog: true
         });
 
@@ -882,7 +898,8 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
               rotation: { angleSpread: 1 },
               color: { value: [new THREE.Color(255), new THREE.Color(16777215)] },
               size: { value: 1, spread: 2 },
-              particleCount: particlesPerEmitter
+              particleCount: this.maxParticlesPerEmitter, // have to initialize with the max potential
+              activeMultiplier: this.initialParticlesPerEmitter / this.maxParticlesPerEmitter // this is a value between 0 and 1 that sets how many particles actually used
             });
             emitter.__position = new THREE.Vector3(x, 0, z);
 
@@ -894,6 +911,17 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         }
 
         this.container.add(this.rainParticleGroup.mesh);
+      }
+    },
+    updateParticlesPerEmitter: {
+      value: function updateParticlesPerEmitter(numParticles) {
+        for (var i = 0; i < this.emitters.length; i++) {
+          var iEmitters = this.emitters[i];
+          for (var j = 0; j < iEmitters.length; j++) {
+            var emitter = iEmitters[j];
+            emitter.activeMultiplier = numParticles / this.maxParticlesPerEmitter;
+          }
+        }
       }
     }
   });
