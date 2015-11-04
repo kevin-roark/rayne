@@ -574,9 +574,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
     // rain particle config
     this.initialRainParticleY = options.initialRaindropParticleY || 300;
-    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 500;
-    this.initialParticlesPerEmitter = options.initialParticlesPerEmitter || 50;
+    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 1000;
+    this.initialParticlesPerEmitter = options.initialParticlesPerEmitter || 300;
     this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 300 * 1000; // 5 minutes
+    this.rainParticleSize = options.rainParticleSize || 1;
+    this.maxParticleSize = options.maxParticleSize || 10;
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
@@ -599,7 +601,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.numActiveMeshes = options.numActiveMeshes || 500;
 
     // jump config
-    this.jumpLevels = options.jumpLevels || [{ delay: 2000, boost: 150 }, { delay: 6000, boost: 200 }];
+    this.jumpLevels = options.jumpLevels || [{ delay: 800000, boost: 150 }, { delay: 1600000, boost: 200 }];
 
     // non-configurable state properties
     this.hasStarted = false;
@@ -668,6 +670,13 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           });
 
           // set up rain particle growth interval
+
+          setInterval(function () {
+            if (_this.rainParticleSize != _this.maxParticleSize) {
+              _this.rainParticleSize = _this.rainParticleSize + 1;
+            }
+          }, 50000);
+
           var particleGrowthStartTime = new Date();
           this.particleGrowthInterval = setInterval(function () {
             var timeElapsed = new Date() - particleGrowthStartTime;
@@ -676,6 +685,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             var currentNumberOfParticles = _this.initialParticlesPerEmitter + Math.round(percentageOfMaxTimeElapsed * totalParticlesToGrow);
             console.log("number of particles per emitter: " + currentNumberOfParticles);
             _this.updateParticlesPerEmitter(Math.min(_this.maxParticlesPerEmitter, currentNumberOfParticles));
+
+            /*var totalParticleSize = this.maxParticleSize - this.rainParticleSize;
+            var currentSizeOfParticles = this.rainParticleSize + Math.round(percentageOfMaxTimeElapsed * totalParticleSize);
+            console.log('Current particle size: ' + currentSizeOfParticles);
+            this.updateParticleSize(Math.min(this.maxParticlesSize, currentSizeOfParticles)); */
 
             if (currentNumberOfParticles >= _this.maxParticlesPerEmitter) {
               clearInterval(_this.particleGrowthInterval);
@@ -881,7 +895,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             var z = -this.roomLength / 2 + j * this.spacePerEmitter;
 
             var emitter = new SPE.Emitter({
-              maxAge: { value: 9 },
+              maxAge: { value: 8 },
               position: {
                 value: new THREE.Vector3(x, this.initialRainParticleY, z),
                 spread: new THREE.Vector3(this.spacePerEmitter, 0, this.spacePerEmitter)
@@ -897,7 +911,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
               wiggle: { spread: 10 },
               rotation: { angleSpread: 1 },
               color: { value: [new THREE.Color(255), new THREE.Color(16777215)] },
-              size: { value: 1, spread: 2 },
+              size: { value: this.rainParticleSize, spread: 2 },
               particleCount: this.maxParticlesPerEmitter, // have to initialize with the max potential
               activeMultiplier: this.initialParticlesPerEmitter / this.maxParticlesPerEmitter // this is a value between 0 and 1 that sets how many particles actually used
             });
@@ -920,6 +934,17 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           for (var j = 0; j < iEmitters.length; j++) {
             var emitter = iEmitters[j];
             emitter.activeMultiplier = numParticles / this.maxParticlesPerEmitter;
+          }
+        }
+      }
+    },
+    updateParticleSize: {
+      value: function updateParticleSize(ParticleSize) {
+        for (var i = 0; i < this.emitters.length; i++) {
+          var iEmitters = this.emitters[i];
+          for (var j = 0; j < iEmitters.length; j++) {
+            var emitter = iEmitters[j];
+            emitter.activeMultiplier = ParticleSize / this.maxpar;
           }
         }
       }
