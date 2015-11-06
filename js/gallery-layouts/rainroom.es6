@@ -31,13 +31,14 @@ export class RainRoom extends GalleryLayout {
 
     // rain particle config
     this.initialRainParticleY = options.initialRaindropParticleY || 300;
-    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 1500;
-    this.initialParticlesPerEmitter = options.initialParticlesPerEmitter || 300;
-    this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 300 * 1000; // 5 minutes
+    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 1000;
+    this.initialParticlesPerEmitter = options.initialParticlesPerEmitter || 250;
+    this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 600 * 1000; // 10 minutes
     this.rainParticleSize = options.rainParticleSize || 1;
-    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 1;
-    this.rainParticleSizeDelay = options.rainParticleSizeDelay || 10000;
-    this.maxParticleSize = options.maxParticleSize || 100;
+    this.initialRainParticleSizeDelay = options.initialRainParticleSizeDelay || 45 * 1000;
+    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 0.1;
+    this.rainParticleSizeInterval = options.rainParticleSizeInterval || 4000;
+    this.maxParticleSize = options.maxParticleSize || 6;
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
@@ -51,7 +52,6 @@ export class RainRoom extends GalleryLayout {
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 200;
     this.useAcceleration = options.useAcceleration || true;
-
 
     // ghost / trash / alternative media config
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
@@ -133,20 +133,23 @@ export class RainRoom extends GalleryLayout {
       // set up jump level delays
       this.jumpLevels.forEach((jumpLevel) => {
         setTimeout(() => {
-          console.log('new jump velocity boost: ' + jumpLevel.boost);
           this.controls.jumpVelocityBoost = jumpLevel.boost;
         }, jumpLevel.delay);
       });
 
       // set up rain particle growth interval
-
-      /* setInterval(()=> {
-        if (this.rainParticleSize != this.maxParticleSize) {
-          this.rainParticleSize = this.rainParticleSize + this.rainParticleSizeIncrement;
-          this.updateParticleSize(this.rainParticleSize);
-          console.log('current rain size ' + this.rainParticleSize);
-        }
-      }, this.rainParticleSizeDelay); */
+      setTimeout(() => {
+        this.particleSizeInterval = setInterval(()=> {
+          if (this.rainParticleSize < this.maxParticleSize) {
+            this.rainParticleSize = this.rainParticleSize + this.rainParticleSizeIncrement;
+            this.updateParticleSize(this.rainParticleSize);
+            console.log('current rain size ' + this.rainParticleSize);
+          }
+          else {
+            clearInterval(this.particleSizeInterval);
+          }
+        }, this.rainParticleSizeInterval);
+      }, this.initialRainParticleSizeDelay);
 
       var particleGrowthStartTime = new Date();
       this.particleGrowthInterval = setInterval(() => {
@@ -156,11 +159,6 @@ export class RainRoom extends GalleryLayout {
         var currentNumberOfParticles = this.initialParticlesPerEmitter + Math.round(percentageOfMaxTimeElapsed * totalParticlesToGrow);
         console.log('number of particles per emitter: ' + currentNumberOfParticles);
         this.updateParticlesPerEmitter(Math.min(this.maxParticlesPerEmitter, currentNumberOfParticles));
-
-        /* var totalParticleSize = this.maxParticleSize - this.rainParticleSize;
-        var currentSizeOfParticles = this.rainParticleSize + Math.round(percentageOfMaxTimeElapsed * totalParticleSize);
-        console.log('Current particle size: ' + currentSizeOfParticles);
-        this.updateParticleSize(Math.min(this.maxParticlesSize, currentSizeOfParticles)); */
 
         if (currentNumberOfParticles >= this.maxParticlesPerEmitter) {
           clearInterval(this.particleGrowthInterval);
@@ -210,7 +208,6 @@ export class RainRoom extends GalleryLayout {
     else {
       this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops - this.timeBetweenRaindropsDecrement);
     }
-    console.log('new raindrop in: ' + this.timeBetweenRaindrops);
     setTimeout(() => {
       this.layoutNextMedia();
     }, this.timeBetweenRaindrops);
@@ -220,8 +217,6 @@ export class RainRoom extends GalleryLayout {
     if (!media) {
       return;
     }
-
-    //console.log('laying out: ' + index);
 
     var mesh;
     if (!this.canAddAlternativeMedia || Math.random() < 0.67) { // raindrops 2/3 of the time
@@ -276,13 +271,11 @@ export class RainRoom extends GalleryLayout {
     var radius = Math.min(this.raindropMaxRadius, Math.round(Math.random() * this.raindropSizeVariance + 2));
 
     if (this.useAcceleration){
-    this.raindropSizeVariance *= this.raindropSizeVarianceGrowthRate;
+      this.raindropSizeVariance *= this.raindropSizeVarianceGrowthRate;
     }
     else{
-    this.raindropSizeVariance += this.raindropSizeVarianceIncrement;
+      this.raindropSizeVariance += this.raindropSizeVarianceIncrement;
     }
-
-    console.log('raindrop size variance: ' + this.raindropSizeVariance);
 
     var geometry = parametricGeometries.createRaindrop({radius: radius});
 
@@ -413,12 +406,13 @@ export class RainRoom extends GalleryLayout {
     }
   }
 
-  updateParticleSize(ParticleSize) {
+  updateParticleSize(particleSize) {
     for (var i = 0; i < this.emitters.length; i++) {
       var iEmitters = this.emitters[i];
       for (var j = 0; j < iEmitters.length; j++) {
         var emitter = iEmitters[j];
-        emitter.particleCount = ParticleSize;
+        emitter.size.value = particleSize;
+        emitter.size.spread = particleSize;
       }
     }
   }
