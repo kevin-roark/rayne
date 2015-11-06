@@ -53,19 +53,6 @@ export class MainScene extends SheenScene {
     this.rayne.create(() => {
       this.galleryDidLoad();
     });
-
-    setTimeout(() => {
-      this.rainEngine = new RainyDay({
-        blur: null,
-        opacity: 0.67,
-        enableCollisions: true,
-        image: document.getElementById('rain-screen-background'),
-        showImage: false
-      });
-
-      // add 1 drop of size from 5 - 9, every 1000ms
-      this.rainEngine.rain([ [5, 4, 1] ], 1000);
-    }, 1000);
   }
 
   exit() {
@@ -155,6 +142,26 @@ export class MainScene extends SheenScene {
     this.sound.loop().play().fadeIn().fadeOut();
 
     this.rayne.layout.start();
+
+    setTimeout(() => {
+      this.rainEngine = new RainyDay({
+        blur: null,
+        opacity: 0.0,
+        enableCollisions: true,
+        image: document.getElementById('rain-screen-background'),
+        showImage: false
+      });
+
+      // add 1 drop of size from 5 - 9, every 1000ms
+      this.rainEngine.rain([ [5, 4, 1] ], 1000);
+
+      var rainOpacityInterval = setInterval(() => {
+        this.rainEngine.options.opacity += 0.001;
+        if (this.rainEngine.options.opacity >= 0.67) {
+          clearInterval(rainOpacityInterval);
+        }
+      }, 100);
+    }, 1000);
 
     this.hasStarted = true;
 

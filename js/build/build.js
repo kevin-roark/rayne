@@ -4319,19 +4319,6 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         this.rayne.create(function () {
           _this.galleryDidLoad();
         });
-
-        setTimeout(function () {
-          _this.rainEngine = new RainyDay({
-            blur: null,
-            opacity: 0.67,
-            enableCollisions: true,
-            image: document.getElementById("rain-screen-background"),
-            showImage: false
-          });
-
-          // add 1 drop of size from 5 - 9, every 1000ms
-          _this.rainEngine.rain([[5, 4, 1]], 1000);
-        }, 1000);
       }
     },
     exit: {
@@ -4422,6 +4409,8 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
     },
     start: {
       value: function start() {
+        var _this = this;
+
         $(".splash-overlay").fadeOut(1000);
         if (this.onPhone) {
           $("#mobile-error-overlay").fadeOut(1000);
@@ -4430,6 +4419,26 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         this.sound.loop().play().fadeIn().fadeOut();
 
         this.rayne.layout.start();
+
+        setTimeout(function () {
+          _this.rainEngine = new RainyDay({
+            blur: null,
+            opacity: 0,
+            enableCollisions: true,
+            image: document.getElementById("rain-screen-background"),
+            showImage: false
+          });
+
+          // add 1 drop of size from 5 - 9, every 1000ms
+          _this.rainEngine.rain([[5, 4, 1]], 1000);
+
+          var rainOpacityInterval = setInterval(function () {
+            _this.rainEngine.options.opacity += 0.001;
+            if (_this.rainEngine.options.opacity >= 0.67) {
+              clearInterval(rainOpacityInterval);
+            }
+          }, 100);
+        }, 1000);
 
         this.hasStarted = true;
 
