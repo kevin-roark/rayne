@@ -555,6 +555,8 @@ var ScoreKeeper = require("../scorekeeper.es6").ScoreKeeper;
 /* TODO:
  * 1) maybe do hands
  * 5) physical switch that flips when garbage is added
+ * 6) fix rain size increase
+ * 6) slowly raise ground after a certain point
  */
 
 var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
@@ -574,34 +576,40 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
     // rain particle config
     this.initialRainParticleY = options.initialRaindropParticleY || 300;
-    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 1000;
+    this.maxParticlesPerEmitter = options.maxParticlesPerEmitter || 1500;
     this.initialParticlesPerEmitter = options.initialParticlesPerEmitter || 300;
     this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 300 * 1000; // 5 minutes
     this.rainParticleSize = options.rainParticleSize || 1;
-    this.maxParticleSize = options.maxParticleSize || 10;
+    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 1;
+    this.rainParticleSizeDelay = options.rainParticleSizeDelay || 10000;
+    this.maxParticleSize = options.maxParticleSize || 100;
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
     this.initialRaindropTime = options.initialRaindropTime || 5000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
+    this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.timeBetweenRaindropsDecrement = options.timeBetweenRaindropsDecrement || 30; // number of ms to deceremnt time between raindrops on every rain fall
     this.raindropSizeVariance = options.raindropSizeVariance || 1;
+    this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.005;
     this.raindropSizeVarianceIncrement = options.raindropSizeVarianceIncrement || 0.035; // number of "space units" to increment raindrop size variance each time raindrop is createed
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
-    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 250;
+    this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 200;
+    this.useAcceleration = options.useAcceleration || true;
 
     // ghost / trash / alternative media config
-    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 140 * 1000;
+    this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
     this.ghostSizeVariance = options.ghostSizeVariance || 6;
+    this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
     this.ghostSizeVarianceIncrement = options.ghostSizeVarianceIncrement || 0.05; // number of "space units" to increment ghost size variance each time ghost is created
-    this.maxGhostLength = options.maxGhostLength || 18;
+    this.maxGhostLength = options.maxGhostLength || 30;
 
     // wall update config
     this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
-    this.numActiveMeshes = options.numActiveMeshes || 500;
+    this.numActiveMeshes = options.numActiveMeshes || 600;
 
     // jump config
-    this.jumpLevels = options.jumpLevels || [{ delay: 800000, boost: 150 }, { delay: 1600000, boost: 200 }];
+    this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 1000000, boost: 200 }];
 
     // non-configurable state properties
     this.hasStarted = false;
@@ -671,11 +679,13 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
           // set up rain particle growth interval
 
-          setInterval(function () {
-            if (_this.rainParticleSize != _this.maxParticleSize) {
-              _this.rainParticleSize = _this.rainParticleSize + 1;
+          /* setInterval(()=> {
+            if (this.rainParticleSize != this.maxParticleSize) {
+              this.rainParticleSize = this.rainParticleSize + this.rainParticleSizeIncrement;
+              this.updateParticleSize(this.rainParticleSize);
+              console.log('current rain size ' + this.rainParticleSize);
             }
-          }, 50000);
+          }, this.rainParticleSizeDelay); */
 
           var particleGrowthStartTime = new Date();
           this.particleGrowthInterval = setInterval(function () {
@@ -686,7 +696,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             console.log("number of particles per emitter: " + currentNumberOfParticles);
             _this.updateParticlesPerEmitter(Math.min(_this.maxParticlesPerEmitter, currentNumberOfParticles));
 
-            /*var totalParticleSize = this.maxParticleSize - this.rainParticleSize;
+            /* var totalParticleSize = this.maxParticleSize - this.rainParticleSize;
             var currentSizeOfParticles = this.rainParticleSize + Math.round(percentageOfMaxTimeElapsed * totalParticleSize);
             console.log('Current particle size: ' + currentSizeOfParticles);
             this.updateParticleSize(Math.min(this.maxParticlesSize, currentSizeOfParticles)); */
@@ -737,7 +747,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         }
 
         // set up next media layout
-        this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops - this.timeBetweenRaindropsDecrement);
+        if (this.useAcceleration) {
+          this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops * this.raindropTimeDecayRate);
+        } else {
+          this.timeBetweenRaindrops = Math.max(this.minimumTimeBetweenRaindrops, this.timeBetweenRaindrops - this.timeBetweenRaindropsDecrement);
+        }
         console.log("new raindrop in: " + this.timeBetweenRaindrops);
         setTimeout(function () {
           _this.layoutNextMedia();
@@ -807,7 +821,13 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     createRaindrop: {
       value: function createRaindrop(media) {
         var radius = Math.min(this.raindropMaxRadius, Math.round(Math.random() * this.raindropSizeVariance + 2));
-        this.raindropSizeVariance += this.raindropSizeVarianceIncrement;
+
+        if (this.useAcceleration) {
+          this.raindropSizeVariance *= this.raindropSizeVarianceGrowthRate;
+        } else {
+          this.raindropSizeVariance += this.raindropSizeVarianceIncrement;
+        }
+
         console.log("raindrop size variance: " + this.raindropSizeVariance);
 
         var geometry = parametricGeometries.createRaindrop({ radius: radius });
@@ -826,7 +846,12 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     createGarbage: {
       value: function createGarbage(media) {
         var length = Math.min(this.maxGhostLength, Math.round(Math.random() * this.ghostSizeVariance + 2));
-        this.ghostSizeVariance += this.ghostSizeVarianceIncrement;
+
+        if (this.useAcceleration) {
+          this.ghostSizeVariance *= this.ghostSizeVarianceGrowthRate;
+        } else {
+          this.ghostSizeVariance += this.ghostSizeVarianceIncrement;
+        }
 
         var geometry = parametricGeometries.createCrumpledGarbage({ radius: length });
 
@@ -944,7 +969,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           var iEmitters = this.emitters[i];
           for (var j = 0; j < iEmitters.length; j++) {
             var emitter = iEmitters[j];
-            emitter.activeMultiplier = ParticleSize / this.maxpar;
+            emitter.particleCount = ParticleSize;
           }
         }
       }
