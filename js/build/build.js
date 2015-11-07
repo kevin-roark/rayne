@@ -541,6 +541,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var THREE = require("three");
 var Physijs = require("../lib/physi");
+var buzz = require("../lib/buzz");
 var SPE = require("../lib/shader-particle-engine");
 var kt = require("kutility");
 var TWEEN = require("tween.js");
@@ -576,49 +577,54 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 600 * 1000; // 10 minutes
     this.rainParticleSize = options.rainParticleSize || 1;
     this.initialRainParticleSizeDelay = options.initialRainParticleSizeDelay || 45 * 1000;
-    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 0.1;
+    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 0.05;
     this.rainParticleSizeInterval = options.rainParticleSizeInterval || 4000;
     this.maxParticleSize = options.maxParticleSize || 6;
+    this.initialParticleSpread = options.maxParticleSize || 6;
+    this.maxParticleSpread = options.maxParticleSize || 20;
+    this.rainParticleSpreadIncrement = options.maxParticleSize || 1;
+    this.rainParticleSpreadInterval = options.rainParticleSizeInterval || 15000;
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.wallHeight - 5;
-    this.initialRaindropTime = options.initialRaindropTime || 5000;
+    this.initialRaindropTime = options.initialRaindropTime || 10000;
+    this.removeRaindropTime = options.removeRaindropTime || 60000 * 7; // 14 minutes
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.timeBetweenRaindropsDecrement = options.timeBetweenRaindropsDecrement || 30; // number of ms to deceremnt time between raindrops on every rain fall
-    this.raindropSizeVariance = options.raindropSizeVariance || 10;
+    this.raindropSizeVariance = options.raindropSizeVariance || 1;
     this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.005;
     this.raindropSizeVarianceIncrement = options.raindropSizeVarianceIncrement || 0.035; // number of "space units" to increment raindrop size variance each time raindrop is createed
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 200;
     this.useAcceleration = options.useAcceleration || true;
-    this.numActiveMeshes = options.numActiveMeshes || 600;
+    this.numActiveMeshes = options.numActiveMeshes || 500;
 
     // ghost / trash / alternative media config
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
-    this.ghostSizeVariance = options.ghostSizeVariance || 12;
+    this.ghostSizeVariance = options.ghostSizeVariance || 20;
     this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
     this.ghostSizeVarianceIncrement = options.ghostSizeVarianceIncrement || 0.05; // number of "space units" to increment ghost size variance each time ghost is created
     this.maxGhostLength = options.maxGhostLength || 36;
 
     // constriction config
-    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 60000 * 3; // 5 minutes
+    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 60000 * 8; // 5 minutes
     this.maxGroundY = options.maxGroundY || this.wallHeight - 125;
-    this.groundAscensionTime = options.groundAscensionTime || 60000 * 6; // 6 minutes
+    this.groundAscensionTime = options.groundAscensionTime || 60000 * 3; // 6 minutes
 
     // wall update config
-    this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
+    this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 2000;
     this.delayForRapidTimeBetweenWallUpdates = options.delayForRapidTimeBetweenWallUpdates || this.groundBeginToRiseDelay + this.groundAscensionTime - 60000;
-    this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 50;
+    this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 10;
     this.wallMediaIndex = 0;
 
     // particle texture config
-    this.delayForImagesAsRainParticles = options.delayForImagesAsRainParticles || this.groundBeginToRiseDelay + this.groundAscensionTime + 60000;
+    this.delayForImagesAsRainParticles = options.delayForImagesAsRainParticles || this.groundBeginToRiseDelay + this.groundAscensionTime - 60000;
     this.timeBetweenRainParticleImages = options.timeBetweenRainParticleImages || 45000;
     this.minimumTimeBetweenRainParticleUpdates = options.minimumTimeBetweenRainParticleUpdates || 10000;
 
     // jump config
-    this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 1000000, boost: 200 }];
+    this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 800000, boost: 200 }, { delay: 1000000, boost: 250 }];
 
     // non-configurable state properties
     this.hasStarted = false;
@@ -679,6 +685,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   _inherits(RainRoom, _GalleryLayout);
 
   _createClass(RainRoom, {
+    toggleVoiceover: {
+      value: function toggleVoiceover() {
+        console.log("toggle the voiceover...");
+      }
+    },
     start: {
       value: function start() {
         var _this = this;
@@ -754,7 +765,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             _this.updateCurrentWall();
 
             if (_this.flashingWallsRapidly) {
-              _this.timeBetweenWallUpdates = Math.max(_this.minimumTimeBetweenWallUpdates, _this.timeBetweenWallUpdates - 5);
+              _this.timeBetweenWallUpdates = Math.max(_this.minimumTimeBetweenWallUpdates, _this.timeBetweenWallUpdates - 10);
               console.log("time between wall updates: " + _this.timeBetweenWallUpdates);
             }
 
@@ -784,6 +795,28 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             updateRainParticles();
           }, this.delayForImagesAsRainParticles);
         }
+        // remove raindrop meshes
+        setTimeout(function () {
+          _this.numActiveMeshes = 0;
+          _this.raindropMaxRadius = 1;
+          _this.raindropSizeVariance = 1;
+          _this.raindropSizeVarianceGrowthRate = 1;
+          _this.canAddAlternativeMedia = false;
+          console.log("Removing raindrops... ");
+        }, this.removeRaindropTime);
+
+        // image rain spread increases
+        setTimeout(function () {
+          _this.particleSpreadInterval = setInterval(function () {
+            if (_this.particleSpread < _this.maxParticleSpread) {
+              _this.particleSpread = _this.particleSpread + _this.rainParticleSpreadIncrement;
+              _this.updateParticleSpread(_this.particleSpread);
+              console.log("current rain speard " + _this.particleSpread);
+            } else {
+              clearInterval(_this.particleSpreadInterval);
+            }
+          }, _this.rainParticleSpreadInterval);
+        }, this.delayForImagesAsRainParticles + 90000);
       }
     },
     update: {
@@ -1047,6 +1080,17 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           }
         }
       }
+    },
+    updateParticleSpread: {
+      value: function updateParticleSpread(particleSpread) {
+        for (var i = 0; i < this.emitters.length; i++) {
+          var iEmitters = this.emitters[i];
+          for (var j = 0; j < iEmitters.length; j++) {
+            var emitter = iEmitters[j];
+            emitter.size.spread = particleSpread;
+          }
+        }
+      }
     }
   });
 
@@ -1154,7 +1198,7 @@ function createWall(options) {
 
 // DO DOM
 
-},{"../geometry-util":6,"../lib/physi":9,"../lib/shader-particle-engine":11,"../parametric-geometries":14,"../scorekeeper.es6":15,"../sheen-mesh":16,"./gallery-layout.es6":3,"kutility":21,"three":23,"tween.js":24}],5:[function(require,module,exports){
+},{"../geometry-util":6,"../lib/buzz":8,"../lib/physi":9,"../lib/shader-particle-engine":11,"../parametric-geometries":14,"../scorekeeper.es6":15,"../sheen-mesh":16,"./gallery-layout.es6":3,"kutility":21,"three":23,"tween.js":24}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -4701,6 +4745,9 @@ var Sheen = (function (_ThreeBoiler) {
         switch (keycode) {
           case 113:
             /* q */
+            if (this.mainScene.rayne) {
+              this.mainScene.rayne.layout.toggleVoiceover();
+            }
             break;
 
           case 114:
