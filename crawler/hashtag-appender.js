@@ -8,7 +8,7 @@ instagramClient.init(secrets.INSTAGRAM_CLIENT_ID, secrets.INSTAGRAM_CLIENT_SECRE
 
 // u can change this, dummy
 var tagToCrawl = 'rainroom';
-var inputFilename = '../data/rayne_media.json';
+var inputFilename = '../media/rayne_media.json';
 var outputFilename = inputFilename;
 
 // global variables lol oops!
