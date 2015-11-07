@@ -1,6 +1,7 @@
 
 let THREE = require('three');
 let Physijs = require('../lib/physi');
+let buzz = require('../lib/buzz');
 let SPE = require('../lib/shader-particle-engine');
 let kt = require('kutility');
 let TWEEN = require('tween.js');
@@ -34,14 +35,19 @@ export class RainRoom extends GalleryLayout {
     this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 0.1;
     this.rainParticleSizeInterval = options.rainParticleSizeInterval || 4000;
     this.maxParticleSize = options.maxParticleSize || 6;
+    this.initialParticleSpread = options.maxParticleSize || 6;
+    this.maxParticleSpread = options.maxParticleSize || 20;
+    this.rainParticleSpreadIncrement = options.maxParticleSize || 1;
+    this.rainParticleSpreadInterval = options.rainParticleSizeInterval || 15000;
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.wallHeight - 5;
-    this.initialRaindropTime = options.initialRaindropTime || 5000;
+    this.initialRaindropTime = options.initialRaindropTime || 10000;
+    this.removeRaindropTime = options.removeRaindropTime || 60000 * 14; // 14 minutes
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.timeBetweenRaindropsDecrement = options.timeBetweenRaindropsDecrement || 30; // number of ms to deceremnt time between raindrops on every rain fall
-    this.raindropSizeVariance = options.raindropSizeVariance || 10;
+    this.raindropSizeVariance = options.raindropSizeVariance || 1;
     this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.005;
     this.raindropSizeVarianceIncrement = options.raindropSizeVarianceIncrement || 0.035; // number of "space units" to increment raindrop size variance each time raindrop is createed
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
@@ -62,7 +68,7 @@ export class RainRoom extends GalleryLayout {
     this.groundAscensionTime = options.groundAscensionTime || 60000 * 6; // 6 minutes
 
     // wall update config
-    this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
+    this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 2000;
     this.delayForRapidTimeBetweenWallUpdates = options.delayForRapidTimeBetweenWallUpdates || this.groundBeginToRiseDelay + this.groundAscensionTime - 60000;
     this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 50;
     this.wallMediaIndex = 0;
@@ -219,7 +225,7 @@ export class RainRoom extends GalleryLayout {
         this.updateCurrentWall();
 
         if (this.flashingWallsRapidly) {
-          this.timeBetweenWallUpdates = Math.max(this.minimumTimeBetweenWallUpdates, this.timeBetweenWallUpdates - 5);
+          this.timeBetweenWallUpdates = Math.max(this.minimumTimeBetweenWallUpdates, this.timeBetweenWallUpdates - 10);
           console.log('time between wall updates: ' + this.timeBetweenWallUpdates);
         }
 
@@ -249,9 +255,28 @@ export class RainRoom extends GalleryLayout {
         updateRainParticles();
       }, this.delayForImagesAsRainParticles);
     }
+    // remove raindrop meshes
+      setTimeout(() => {
+        this.numActiveMeshes = 0;
+        console.log('Removing raindrops... ');
+      }, this.removeRaindropTime);
+
+    // image rain spread increases
+    setTimeout(() => {
+      this.particleSpreadInterval = setInterval(()=> {
+        if (this.particleSpread < this.maxParticleSpread) {
+          this.particleSpread = this.particleSpread + this.rainParticleSpreadIncrement;
+          this.updateParticleSpread(this.particleSpread);
+          console.log('current rain speard ' + this.particleSpread);
+        }
+        else {
+          clearInterval(this.particleSpreadInterval);
+        }
+      }, this.rainParticleSpreadInterval);
+    }, this.delayForImagesAsRainParticles + 90000);
   }
 
-  update(dt) {
+  update(dt){
     super.update();
 
     if (!this.hasStarted) {
@@ -497,6 +522,16 @@ export class RainRoom extends GalleryLayout {
         var emitter = iEmitters[j];
         emitter.size.value = particleSize;
         emitter.size.spread = particleSize;
+      }
+    }
+  }
+
+  updateParticleSpread(particleSpread) {
+    for (var i = 0; i < this.emitters.length; i++) {
+      var iEmitters = this.emitters[i];
+      for (var j = 0; j < iEmitters.length; j++) {
+        var emitter = iEmitters[j];
+        emitter.size.spread = particleSpread;
       }
     }
   }
