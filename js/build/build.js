@@ -679,6 +679,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
   _inherits(RainRoom, _GalleryLayout);
 
   _createClass(RainRoom, {
+    toggleVoiceover: {
+      value: function toggleVoiceover() {
+        console.log("toggle the voiceover...");
+      }
+    },
     start: {
       value: function start() {
         var _this = this;
@@ -4701,6 +4706,9 @@ var Sheen = (function (_ThreeBoiler) {
         switch (keycode) {
           case 113:
             /* q */
+            if (this.mainScene.rayne) {
+              this.mainScene.rayne.layout.toggleVoiceover();
+            }
             break;
 
           case 114:

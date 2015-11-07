@@ -98,6 +98,9 @@ class Sheen extends ThreeBoiler {
 
     switch (keycode) {
       case 113: /* q */
+        if (this.mainScene.rayne) {
+          this.mainScene.rayne.layout.toggleVoiceover();
+        }
         break;
 
       case 114: /* r */

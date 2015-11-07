@@ -139,6 +139,10 @@ export class RainRoom extends GalleryLayout {
     }
   }
 
+  toggleVoiceover() {
+    console.log('toggle the voiceover...');
+  }
+
   start() {
     this.hasStarted = true;
 
