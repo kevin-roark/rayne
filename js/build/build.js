@@ -577,7 +577,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.timeToReachMaxParticleTarget = options.timeToReachMaxParticleTarget || 600 * 1000; // 10 minutes
     this.rainParticleSize = options.rainParticleSize || 1;
     this.initialRainParticleSizeDelay = options.initialRainParticleSizeDelay || 45 * 1000;
-    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 0.1;
+    this.rainParticleSizeIncrement = options.rainParticleSizeIncrement || 0.05;
     this.rainParticleSizeInterval = options.rainParticleSizeInterval || 4000;
     this.maxParticleSize = options.maxParticleSize || 6;
     this.initialParticleSpread = options.maxParticleSize || 6;
@@ -588,7 +588,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.wallHeight - 5;
     this.initialRaindropTime = options.initialRaindropTime || 10000;
-    this.removeRaindropTime = options.removeRaindropTime || 60000 * 14; // 14 minutes
+    this.removeRaindropTime = options.removeRaindropTime || 60000 * 7; // 14 minutes
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.timeBetweenRaindropsDecrement = options.timeBetweenRaindropsDecrement || 30; // number of ms to deceremnt time between raindrops on every rain fall
@@ -598,33 +598,33 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 200;
     this.useAcceleration = options.useAcceleration || true;
-    this.numActiveMeshes = options.numActiveMeshes || 600;
+    this.numActiveMeshes = options.numActiveMeshes || 500;
 
     // ghost / trash / alternative media config
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
-    this.ghostSizeVariance = options.ghostSizeVariance || 12;
+    this.ghostSizeVariance = options.ghostSizeVariance || 20;
     this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
     this.ghostSizeVarianceIncrement = options.ghostSizeVarianceIncrement || 0.05; // number of "space units" to increment ghost size variance each time ghost is created
     this.maxGhostLength = options.maxGhostLength || 36;
 
     // constriction config
-    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 60000 * 3; // 5 minutes
+    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 60000 * 8; // 5 minutes
     this.maxGroundY = options.maxGroundY || this.wallHeight - 125;
-    this.groundAscensionTime = options.groundAscensionTime || 60000 * 6; // 6 minutes
+    this.groundAscensionTime = options.groundAscensionTime || 60000 * 3; // 6 minutes
 
     // wall update config
     this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 2000;
     this.delayForRapidTimeBetweenWallUpdates = options.delayForRapidTimeBetweenWallUpdates || this.groundBeginToRiseDelay + this.groundAscensionTime - 60000;
-    this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 50;
+    this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 10;
     this.wallMediaIndex = 0;
 
     // particle texture config
-    this.delayForImagesAsRainParticles = options.delayForImagesAsRainParticles || this.groundBeginToRiseDelay + this.groundAscensionTime + 60000;
+    this.delayForImagesAsRainParticles = options.delayForImagesAsRainParticles || this.groundBeginToRiseDelay + this.groundAscensionTime - 60000;
     this.timeBetweenRainParticleImages = options.timeBetweenRainParticleImages || 45000;
     this.minimumTimeBetweenRainParticleUpdates = options.minimumTimeBetweenRainParticleUpdates || 10000;
 
     // jump config
-    this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 1000000, boost: 200 }];
+    this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 800000, boost: 200 }, { delay: 1000000, boost: 250 }];
 
     // non-configurable state properties
     this.hasStarted = false;
@@ -798,6 +798,10 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         // remove raindrop meshes
         setTimeout(function () {
           _this.numActiveMeshes = 0;
+          _this.raindropMaxRadius = 1;
+          _this.raindropSizeVariance = 1;
+          _this.raindropSizeVarianceGrowthRate = 1;
+          _this.canAddAlternativeMedia = false;
           console.log("Removing raindrops... ");
         }, this.removeRaindropTime);
 
