@@ -592,32 +592,34 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
     this.minimumTimeBetweenRaindrops = options.minimumTimeBetweenRaindrops || 200;
     this.useAcceleration = options.useAcceleration || true;
+    this.numActiveMeshes = options.numActiveMeshes || 600;
 
     // ghost / trash / alternative media config
     this.timeToAddAlternativeMedia = options.timeToAddAlternativeMedia || 180 * 1000;
-    this.ghostSizeVariance = options.ghostSizeVariance || 6;
+    this.ghostSizeVariance = options.ghostSizeVariance || 12;
     this.ghostSizeVarianceGrowthRate = options.ghostSizeVarianceGrowthRate || 1.004;
     this.ghostSizeVarianceIncrement = options.ghostSizeVarianceIncrement || 0.05; // number of "space units" to increment ghost size variance each time ghost is created
-    this.maxGhostLength = options.maxGhostLength || 30;
+    this.maxGhostLength = options.maxGhostLength || 36;
+
+    // constriction config
+    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 60000 * 3; // 5 minutes
+    this.maxGroundY = options.maxGroundY || this.wallHeight - 125;
+    this.groundAscensionTime = options.groundAscensionTime || 60000 * 6; // 6 minutes
 
     // wall update config
     this.timeBetweenWallUpdates = options.timeBetweenWallUpdates || 1666;
-    this.numActiveMeshes = options.numActiveMeshes || 600;
+    this.delayForRapidTimeBetweenWallUpdates = options.delayForRapidTimeBetweenWallUpdates || this.groundBeginToRiseDelay + this.groundAscensionTime - 60000;
+    this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 50;
+    this.wallMediaIndex = 0;
 
     // jump config
     this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 1000000, boost: 200 }];
-
-    // constriction config
-    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 1000; // 60000 * 5 // 5 minutes
-    this.maxGroundY = options.maxGroundY || this.wallHeight - 100;
-    this.groundAscensionTime = options.groundAscensionTime || 60000 * 3; // 3 minutes
 
     // non-configurable state properties
     this.hasStarted = false;
     this.emitters = [];
     this.canAddAlternativeMedia = false;
     this.nextWallToUpdateIndex = 0;
-    this.lastWallUpdateTime = 0;
     this.scorekeeper = new ScoreKeeper();
     this.rainCollisionSet = {};
     this.activeMeshes = [];
@@ -655,10 +657,10 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
       this.walls.forEach(function (wall) {
         wall.addTo(_this.container);
       });
-      this.updateCurrentWall(this.media[0]);
-      this.updateCurrentWall(this.media[1]);
-      this.updateCurrentWall(this.media[2]);
-      this.updateCurrentWall(this.media[3]);
+      this.updateCurrentWall();
+      this.updateCurrentWall();
+      this.updateCurrentWall();
+      this.updateCurrentWall();
 
       // rain particles...
       this.setupRainParticleSystem();
@@ -741,6 +743,24 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             });
             tween.start();
           }, this.groundBeginToRiseDelay);
+
+          // set up the wall waterfall
+          var updateWall = function () {
+            _this.updateCurrentWall();
+
+            if (_this.flashingWallsRapidly) {
+              _this.timeBetweenWallUpdates = Math.max(_this.minimumTimeBetweenWallUpdates, _this.timeBetweenWallUpdates - 5);
+              console.log("time between wall updates: " + _this.timeBetweenWallUpdates);
+            }
+
+            setTimeout(updateWall, _this.timeBetweenWallUpdates);
+          };
+          updateWall();
+
+          // eventually the wall flashes faster
+          setTimeout(function () {
+            _this.flashingWallsRapidly = true;
+          }, this.delayForRapidTimeBetweenWallUpdates);
         }
       }
     },
@@ -774,16 +794,6 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         var media = this.media[this.nextMediaToAddIndex];
         this.layoutMedia(this.nextMediaToAddIndex, media);
         this.nextMediaToAddIndex += 1;
-
-        // do wall update
-        var now = new Date();
-        if (now - this.lastWallUpdateTime > this.timeBetweenWallUpdates) {
-          var wallMediaIndex = this.nextMediaToAddIndex + 4;
-          if (wallMediaIndex < this.media.length) {
-            this.updateCurrentWall(this.media[wallMediaIndex]);
-          }
-          this.lastWallUpdateTime = now;
-        }
 
         // set up next media layout
         if (this.useAcceleration) {
@@ -835,7 +845,14 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
       }
     },
     updateCurrentWall: {
-      value: function updateCurrentWall(media) {
+      value: function updateCurrentWall() {
+        if (this.wallMediaIndex >= this.media.length) {
+          return;
+        }
+
+        var media = this.media[this.wallMediaIndex];
+        this.wallMediaIndex += 1;
+
         var wall = this.walls[this.nextWallToUpdateIndex];
         if (wall.mesh.material.map) {
           wall.mesh.material.map = this.createTexture(media);
