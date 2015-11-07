@@ -67,6 +67,11 @@ export class RainRoom extends GalleryLayout {
     this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 50;
     this.wallMediaIndex = 0;
 
+    // particle texture config
+    this.delayForImagesAsRainParticles = options.delayForImagesAsRainParticles || this.groundBeginToRiseDelay + this.groundAscensionTime + 60000;
+    this.timeBetweenRainParticleImages = options.timeBetweenRainParticleImages || 45000;
+    this.minimumTimeBetweenRainParticleUpdates = options.minimumTimeBetweenRainParticleUpdates || 10000;
+
     // jump config
     this.jumpLevels = options.jumpLevels || [{delay: 400000, boost: 150}, {delay: 1000000, boost: 200}];
 
@@ -222,6 +227,23 @@ export class RainRoom extends GalleryLayout {
       setTimeout(() => {
         this.flashingWallsRapidly = true;
       }, this.delayForRapidTimeBetweenWallUpdates);
+
+      // rain becomes images
+      setTimeout(() => {
+        var updateRainParticles = () => {
+          if (this.wallMediaIndex >= this.media.length) {
+            this.wallMediaIndex = 0;
+          }
+          var media = this.media[this.wallMediaIndex];
+          this.rainParticleGroup.uniforms.texture.value = this.createTexture(media);
+
+          this.timeBetweenRainParticleImages = Math.max(this.minimumTimeBetweenRainParticleUpdates, this.timeBetweenRainParticleImages - 2000);
+          console.log('time between rain particle updates: ' + this.timeBetweenRainParticleImages);
+
+          setTimeout(updateRainParticles, this.timeBetweenRainParticleImages);
+        };
+        updateRainParticles();
+      }, this.delayForImagesAsRainParticles);
     }
   }
 
@@ -299,7 +321,7 @@ export class RainRoom extends GalleryLayout {
 
   updateCurrentWall() {
     if (this.wallMediaIndex >= this.media.length) {
-      return;
+      this.wallMediaIndex = 0;
     }
 
     var media = this.media[this.wallMediaIndex];

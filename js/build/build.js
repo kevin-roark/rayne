@@ -612,6 +612,11 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     this.minimumTimeBetweenWallUpdates = options.minimumTimeBetweenWallUpdates || 50;
     this.wallMediaIndex = 0;
 
+    // particle texture config
+    this.delayForImagesAsRainParticles = options.delayForImagesAsRainParticles || this.groundBeginToRiseDelay + this.groundAscensionTime + 60000;
+    this.timeBetweenRainParticleImages = options.timeBetweenRainParticleImages || 45000;
+    this.minimumTimeBetweenRainParticleUpdates = options.minimumTimeBetweenRainParticleUpdates || 10000;
+
     // jump config
     this.jumpLevels = options.jumpLevels || [{ delay: 400000, boost: 150 }, { delay: 1000000, boost: 200 }];
 
@@ -761,6 +766,23 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           setTimeout(function () {
             _this.flashingWallsRapidly = true;
           }, this.delayForRapidTimeBetweenWallUpdates);
+
+          // rain becomes images
+          setTimeout(function () {
+            var updateRainParticles = function () {
+              if (_this.wallMediaIndex >= _this.media.length) {
+                _this.wallMediaIndex = 0;
+              }
+              var media = _this.media[_this.wallMediaIndex];
+              _this.rainParticleGroup.uniforms.texture.value = _this.createTexture(media);
+
+              _this.timeBetweenRainParticleImages = Math.max(_this.minimumTimeBetweenRainParticleUpdates, _this.timeBetweenRainParticleImages - 2000);
+              console.log("time between rain particle updates: " + _this.timeBetweenRainParticleImages);
+
+              setTimeout(updateRainParticles, _this.timeBetweenRainParticleImages);
+            };
+            updateRainParticles();
+          }, this.delayForImagesAsRainParticles);
         }
       }
     },
@@ -847,7 +869,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     updateCurrentWall: {
       value: function updateCurrentWall() {
         if (this.wallMediaIndex >= this.media.length) {
-          return;
+          this.wallMediaIndex = 0;
         }
 
         var media = this.media[this.wallMediaIndex];
