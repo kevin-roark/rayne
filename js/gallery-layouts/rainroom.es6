@@ -3,19 +3,13 @@ let THREE = require('three');
 let Physijs = require('../lib/physi');
 let SPE = require('../lib/shader-particle-engine');
 let kt = require('kutility');
+let TWEEN = require('tween.js');
 
 var SheenMesh = require('../sheen-mesh');
 var geometryUtil = require('../geometry-util');
 var parametricGeometries = require('../parametric-geometries');
 import {GalleryLayout} from './gallery-layout.es6';
 import {ScoreKeeper} from '../scorekeeper.es6';
-
-/* TODO:
- * 1) maybe do hands
- * 5) physical switch that flips when garbage is added
- * 6) fix rain size increase
- * 6) slowly raise ground after a certain point
- */
 
 export class RainRoom extends GalleryLayout {
 
@@ -26,6 +20,7 @@ export class RainRoom extends GalleryLayout {
 
     // size config
     this.roomLength = options.roomLength || 300;
+    this.wallHeight = options.wallHeight || 666;
     this.emittersPerWall = options.emittersPerWall || 12;
     this.spacePerEmitter = this.roomLength / this.emittersPerWall;
 
@@ -41,12 +36,12 @@ export class RainRoom extends GalleryLayout {
     this.maxParticleSize = options.maxParticleSize || 6;
 
     // raindrop mesh config
-    this.initialRaindropY = options.initialRaindropY || this.roomLength - 5;
+    this.initialRaindropY = options.initialRaindropY || this.wallHeight - 5;
     this.initialRaindropTime = options.initialRaindropTime || 5000;
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
     this.timeBetweenRaindropsDecrement = options.timeBetweenRaindropsDecrement || 30; // number of ms to deceremnt time between raindrops on every rain fall
-    this.raindropSizeVariance = options.raindropSizeVariance || 1;
+    this.raindropSizeVariance = options.raindropSizeVariance || 10;
     this.raindropSizeVarianceGrowthRate = options.raindropSizeVarianceGrowthRate || 1.005;
     this.raindropSizeVarianceIncrement = options.raindropSizeVarianceIncrement || 0.035; // number of "space units" to increment raindrop size variance each time raindrop is createed
     this.raindropMaxRadius = options.raindropMaxRadius || 15;
@@ -67,6 +62,11 @@ export class RainRoom extends GalleryLayout {
     // jump config
     this.jumpLevels = options.jumpLevels || [{delay: 400000, boost: 150}, {delay: 1000000, boost: 200}];
 
+    // constriction config
+    this.groundBeginToRiseDelay = options.groundBeginToRiseDelay || 1000; // 60000 * 5 // 5 minutes
+    this.maxGroundY = options.maxGroundY || this.wallHeight - 100;
+    this.groundAscensionTime = options.groundAscensionTime || 60000 * 3; // 3 minutes
+
     // non-configurable state properties
     this.hasStarted = false;
     this.emitters = [];
@@ -78,11 +78,18 @@ export class RainRoom extends GalleryLayout {
     this.activeMeshes = [];
 
     if (!this.domMode) {
-      this.setupRainParticleSystem();
-
-      this.ground = createGround(this.roomLength, this.yLevel, (otherObject) => {
-        //this.container.remove(otherObject);
-
+      var groundTexture = THREE.ImageUtils.loadTexture('/media/lino007b.jpg');
+      groundTexture.wrapS = THREE.RepeatWrapping;
+      groundTexture.wrapT = THREE.RepeatWrapping;
+      groundTexture.repeat.set(20, 20);
+      var groundMaterial = new THREE.MeshPhongMaterial({
+        bumpMap: skindisp,
+        bumpScale: 0.7,
+        map: groundTexture,
+        color: 0x101010,
+        side: THREE.DoubleSide
+      });
+      this.ground = createPlane(this.roomLength, this.yLevel, groundMaterial, (otherObject) => {
         // only add score if this is the first time object hits ground
         if (otherObject._media && !this.rainCollisionSet[otherObject._media.id]) {
           this.scorekeeper.addScore(1);
@@ -91,20 +98,33 @@ export class RainRoom extends GalleryLayout {
       });
       this.ground.addTo(this.container);
 
-      this.ceiling = createGround(this.roomLength, this.yLevel + this.roomLength);
+      var ceilingTexture = THREE.ImageUtils.loadTexture('/media/ceiling.jpg');
+      var ceilingMaterial = new THREE.MeshBasicMaterial({
+        side: THREE.DoubleSide,
+        map: ceilingTexture
+      });
+      this.ceiling = createPlane(this.roomLength, this.yLevel + this.wallHeight, ceilingMaterial);
       this.ceiling.addTo(this.container);
 
       this.walls = [
-        createWall({direction: 'back', roomLength: this.roomLength, wallHeight: this.roomLength}),
-        createWall({direction: 'left', roomLength: this.roomLength, wallHeight: this.roomLength}),
-        createWall({direction: 'right', roomLength: this.roomLength, wallHeight: this.roomLength}),
-        createWall({direction: 'front', roomLength: this.roomLength, wallHeight: this.roomLength})
+        createWall({direction: 'back', roomLength: this.roomLength, wallHeight: this.wallHeight}),
+        createWall({direction: 'left', roomLength: this.roomLength, wallHeight: this.wallHeight}),
+        createWall({direction: 'right', roomLength: this.roomLength, wallHeight: this.wallHeight}),
+        createWall({direction: 'front', roomLength: this.roomLength, wallHeight: this.wallHeight})
       ];
       this.walls.forEach((wall) => {
         wall.addTo(this.container);
       });
+      this.updateCurrentWall(this.media[0]);
+      this.updateCurrentWall(this.media[1]);
+      this.updateCurrentWall(this.media[2]);
+      this.updateCurrentWall(this.media[3]);
 
-      // move up
+      // rain particles...
+      this.setupRainParticleSystem();
+
+      // let the control object always be 10 units above ground
+      this.ground.mesh.add(this.controlObject);
       this.controlObject.position.y = 10;
     }
     else {
@@ -137,7 +157,7 @@ export class RainRoom extends GalleryLayout {
         }, jumpLevel.delay);
       });
 
-      // set up rain particle growth interval
+      // set up rain particle size interval
       setTimeout(() => {
         this.particleSizeInterval = setInterval(()=> {
           if (this.rainParticleSize < this.maxParticleSize) {
@@ -151,6 +171,7 @@ export class RainRoom extends GalleryLayout {
         }, this.rainParticleSizeInterval);
       }, this.initialRainParticleSizeDelay);
 
+      // set up number of particles per emitter interval
       var particleGrowthStartTime = new Date();
       this.particleGrowthInterval = setInterval(() => {
         var timeElapsed = (new Date() - particleGrowthStartTime);
@@ -164,6 +185,23 @@ export class RainRoom extends GalleryLayout {
           clearInterval(this.particleGrowthInterval);
         }
       }, 2000); // update every 2 seconds
+
+      // set up ground ascension
+      setTimeout(() => {
+        console.log('the ground begins to rise..');
+        var groundPosition = {y: this.ground.mesh.position.y};
+        var ascensionTarget = {y: this.maxGroundY};
+        var tween = new TWEEN.Tween(groundPosition).to(ascensionTarget, this.groundAscensionTime);
+        tween.easing(TWEEN.Easing.Cubic.InOut);
+        tween.onUpdate(() => {
+          this.ground.mesh.position.y = groundPosition.y;
+          this.ground.mesh.__dirtyPosition = true;
+        });
+        tween.onComplete(() => {
+          console.log('you, are, at, the, top......');
+        });
+        tween.start();
+      }, this.groundBeginToRiseDelay);
     }
   }
 
@@ -197,7 +235,10 @@ export class RainRoom extends GalleryLayout {
     // do wall update
     var now = new Date();
     if (now - this.lastWallUpdateTime > this.timeBetweenWallUpdates) {
-      this.updateCurrentWall(media);
+      var wallMediaIndex = this.nextMediaToAddIndex + 4;
+      if (wallMediaIndex < this.media.length) {
+        this.updateCurrentWall(this.media[wallMediaIndex]);
+      }
       this.lastWallUpdateTime = now;
     }
 
@@ -253,7 +294,7 @@ export class RainRoom extends GalleryLayout {
       wall.mesh.material.needsUpdate = true;
     }
     else {
-      wall.mesh.material = new THREE.MeshPhongMaterial({
+      wall.mesh.material = new THREE.MeshBasicMaterial({
         map: this.createTexture(media),
         bumpMap: skindisp,
         side: THREE.DoubleSide,
@@ -393,7 +434,7 @@ export class RainRoom extends GalleryLayout {
       this.emitters.push(iEmitters);
     }
 
-    this.container.add(this.rainParticleGroup.mesh);
+    this.ground.mesh.add(this.rainParticleGroup.mesh);
   }
 
   updateParticlesPerEmitter(numParticles) {
@@ -429,30 +470,16 @@ skindisp.wrapS = THREE.RepeatWrapping;
 skindisp.wrapT = THREE.RepeatWrapping;
 skindisp.repeat.set( 100, 100 );
 
-function createGround(length, y, collisionHandler) {
+function createPlane(length, y, rawMaterial, collisionHandler) {
   return new SheenMesh({
     meshCreator: (callback) => {
-      let geometry = new THREE.PlaneBufferGeometry(length, length);
+      let geometry = new THREE.BoxGeometry(length, 0.1, length);
       geometryUtil.computeShit(geometry);
-      var groundTexture = THREE.ImageUtils.loadTexture('/media/lino007b.jpg');
-      groundTexture.wrapS = THREE.RepeatWrapping;
-      groundTexture.wrapT = THREE.RepeatWrapping;
-      groundTexture.repeat.set( 20, 20 );
-
-      let rawMaterial = new THREE.MeshPhongMaterial({
-        bumpMap: skindisp,
-        bumpScale: 0.7,
-        map: groundTexture,
-        color: 0x101010,
-        side: THREE.DoubleSide
-      });
 
       // lets go high friction, low restitution
       let material = Physijs.createMaterial(rawMaterial, 0.8, 0.4);
 
       let mesh = new Physijs.BoxMesh(geometry, material, 0);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.__dirtyRotation = true;
 
       mesh.receiveShadow = true;
 
