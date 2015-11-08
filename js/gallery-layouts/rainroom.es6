@@ -5,6 +5,7 @@ let buzz = require('../lib/buzz');
 let SPE = require('../lib/shader-particle-engine');
 let kt = require('kutility');
 let TWEEN = require('tween.js');
+let $ = require('jquery');
 
 var SheenMesh = require('../sheen-mesh');
 var geometryUtil = require('../geometry-util');
@@ -42,7 +43,7 @@ export class RainRoom extends GalleryLayout {
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.wallHeight - 5;
-    this.initialRaindropTime = options.initialRaindropTime || 10000;
+    this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.removeRaindropTime = options.removeRaindropTime || 60000 * 7; // 7 minutes
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
@@ -141,7 +142,7 @@ export class RainRoom extends GalleryLayout {
       this.controlObject.position.y = 10;
     }
     else {
-      // DO DOM
+      this.domImages = [];
     }
   }
 
@@ -152,20 +153,17 @@ export class RainRoom extends GalleryLayout {
   start() {
     this.hasStarted = true;
 
-    if (this.domMode) {
-      // DO DOM
-    }
-    else {
+    // set up the layout waterfall
+    setTimeout(() => {
+      this.nextMediaToAddIndex = 0;
+      this.layoutNextMedia();
+    }, this.initialRaindropTime);
+
+    if (!this.domMode) {
       // set up trash delay
       setTimeout(() => {
         this.canAddAlternativeMedia = true;
       }, this.timeToAddAlternativeMedia);
-
-      // set up the layout waterfall
-      setTimeout(() => {
-        this.nextMediaToAddIndex = 0;
-        this.layoutNextMedia();
-      }, this.initialRaindropTime);
 
       // set up jump level delays
       this.jumpLevels.forEach((jumpLevel) => {
@@ -294,6 +292,26 @@ export class RainRoom extends GalleryLayout {
       return;
     }
 
+    if (this.domMode) {
+      var cleanImages = [];
+      for (var i = 0; i < this.domImages.length; i++) {
+        var $img = this.domImages[i];
+        $img._vel += 2;
+        var y = $img._y + $img._vel;
+        $img.css('top', y);
+
+        if (y > window.innerHeight) {
+          $img.remove();
+        }
+        else {
+          cleanImages.push($img);
+        }
+      }
+      this.domImages = cleanImages;
+
+      return;
+    }
+
     this.rainParticleGroup.tick(dt);
 
     var nearDistance = (this.spacePerEmitter/1.5) * (this.spacePerEmitter/1.5);
@@ -332,6 +350,24 @@ export class RainRoom extends GalleryLayout {
 
   layoutMedia(index, media) {
     if (!media) {
+      return;
+    }
+
+    if (this.domMode) {
+      var $image = $('<img style="display: block; position: absolute; background-color: white; z-index: 1000; box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);"></img>');
+      var width = (Math.random() * window.innerWidth * 0.4) + (window.innerWidth * 0.08);
+      $image.css('width', width + 'px');
+      var left = Math.random() * window.innerWidth * 0.8;
+      $image.css('left', left + 'px');
+      $image._y = -100;
+      $image.css('top', $image._y + 'px');
+      $image._vel = (Math.random() * 10) + 1;
+
+      var imageURL = media.type === 'image' ? media.media.url : media.thumbnail.url;
+      $image.attr('src', imageURL);
+
+      $('body').append($image);
+      this.domImages.push($image);
       return;
     }
 
