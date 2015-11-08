@@ -91,7 +91,7 @@ a {
   }
   #splash-controls {
     display: none;
-    font-size: 20px; margin-bottom: 20px;
+    font-size: 20px; line-height: 30px; margin-bottom: 20px;
   }
   #splash-disclaimer {
     margin-left: 0px; /* b man you can make this more left if u want */
