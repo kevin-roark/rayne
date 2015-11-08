@@ -795,15 +795,20 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             updateRainParticles();
           }, this.delayForImagesAsRainParticles);
         }
+
         // remove raindrop meshes
         setTimeout(function () {
-          _this.numActiveMeshes = 10;
-          _this.raindropMaxRadius = 1;
-          _this.raindropSizeVariance = 1;
-          _this.raindropSizeVarianceGrowthRate = 1;
-          _this.canAddAlternativeMedia = false;
-          _this.minimumTimeBetweenRaindrops = 100;
           console.log("Removing raindrops... ");
+          _this.stopCreatingRainMeshes = true;
+
+          var cleanMeshesInterval = setInterval(function () {
+            if (_this.activeMeshes.length > 0) {
+              var deadMesh = _this.activeMeshes.shift();
+              _this.container.remove(deadMesh);
+            } else {
+              clearInterval(cleanMeshesInterval);
+            }
+          }, 64);
         }, this.removeRaindropTime);
 
         // image rain spread increases
@@ -812,7 +817,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
             if (_this.particleSpread < _this.maxParticleSpread) {
               _this.particleSpread = _this.particleSpread + _this.rainParticleSpreadIncrement;
               _this.updateParticleSpread(_this.particleSpread);
-              console.log("current rain speard " + _this.particleSpread);
+              console.log("current rain spread: " + _this.particleSpread);
             } else {
               clearInterval(_this.particleSpreadInterval);
             }
@@ -845,6 +850,10 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
     layoutNextMedia: {
       value: function layoutNextMedia() {
         var _this = this;
+
+        if (this.stopCreatingRainMeshes) {
+          return;
+        }
 
         // layout media
         var media = this.media[this.nextMediaToAddIndex];

@@ -255,16 +255,22 @@ export class RainRoom extends GalleryLayout {
         updateRainParticles();
       }, this.delayForImagesAsRainParticles);
     }
+
     // remove raindrop meshes
-      setTimeout(() => {
-        this.numActiveMeshes = 10;
-        this.raindropMaxRadius = 1;
-        this.raindropSizeVariance = 1;
-        this.raindropSizeVarianceGrowthRate = 1;
-        this.canAddAlternativeMedia = false;
-        this.minimumTimeBetweenRaindrops = 100;
-        console.log('Removing raindrops... ');
-      }, this.removeRaindropTime);
+    setTimeout(() => {
+      console.log('Removing raindrops... ');
+      this.stopCreatingRainMeshes = true;
+
+      var cleanMeshesInterval = setInterval(() => {
+        if (this.activeMeshes.length > 0) {
+          var deadMesh = this.activeMeshes.shift();
+          this.container.remove(deadMesh);
+        }
+        else {
+          clearInterval(cleanMeshesInterval);
+        }
+      }, 64);
+    }, this.removeRaindropTime);
 
     // image rain spread increases
     setTimeout(() => {
@@ -272,7 +278,7 @@ export class RainRoom extends GalleryLayout {
         if (this.particleSpread < this.maxParticleSpread) {
           this.particleSpread = this.particleSpread + this.rainParticleSpreadIncrement;
           this.updateParticleSpread(this.particleSpread);
-          console.log('current rain speard ' + this.particleSpread);
+          console.log('current rain spread: ' + this.particleSpread);
         }
         else {
           clearInterval(this.particleSpreadInterval);
@@ -303,6 +309,10 @@ export class RainRoom extends GalleryLayout {
   }
 
   layoutNextMedia() {
+    if (this.stopCreatingRainMeshes) {
+      return;
+    }
+
     // layout media
     var media = this.media[this.nextMediaToAddIndex];
     this.layoutMedia(this.nextMediaToAddIndex, media);
