@@ -545,6 +545,7 @@ var buzz = require("../lib/buzz");
 var SPE = require("../lib/shader-particle-engine");
 var kt = require("kutility");
 var TWEEN = require("tween.js");
+var $ = require("jquery");
 
 var SheenMesh = require("../sheen-mesh");
 var geometryUtil = require("../geometry-util");
@@ -587,7 +588,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
     // raindrop mesh config
     this.initialRaindropY = options.initialRaindropY || this.wallHeight - 5;
-    this.initialRaindropTime = options.initialRaindropTime || 10000;
+    this.initialRaindropTime = options.initialRaindropTime || 3000;
     this.removeRaindropTime = options.removeRaindropTime || 60000 * 7; // 7 minutes
     this.timeBetweenRaindrops = options.timeBetweenRaindrops || 3000;
     this.raindropTimeDecayRate = options.raindropTimeDecayRate || 0.96;
@@ -679,7 +680,9 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
       // let the control object always be 10 units above ground
       this.ground.mesh.add(this.controlObject);
       this.controlObject.position.y = 10;
-    } else {}
+    } else {
+      this.domImages = [];
+    }
   }
 
   _inherits(RainRoom, _GalleryLayout);
@@ -696,17 +699,17 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
 
         this.hasStarted = true;
 
-        if (this.domMode) {} else {
+        // set up the layout waterfall
+        setTimeout(function () {
+          _this.nextMediaToAddIndex = 0;
+          _this.layoutNextMedia();
+        }, this.initialRaindropTime);
+
+        if (!this.domMode) {
           // set up trash delay
           setTimeout(function () {
             _this.canAddAlternativeMedia = true;
           }, this.timeToAddAlternativeMedia);
-
-          // set up the layout waterfall
-          setTimeout(function () {
-            _this.nextMediaToAddIndex = 0;
-            _this.layoutNextMedia();
-          }, this.initialRaindropTime);
 
           // set up jump level delays
           this.jumpLevels.forEach(function (jumpLevel) {
@@ -833,6 +836,25 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           return;
         }
 
+        if (this.domMode) {
+          var cleanImages = [];
+          for (var i = 0; i < this.domImages.length; i++) {
+            var $img = this.domImages[i];
+            $img._vel += 2;
+            var y = $img._y + $img._vel;
+            $img.css("top", y);
+
+            if (y > window.innerHeight) {
+              $img.remove();
+            } else {
+              cleanImages.push($img);
+            }
+          }
+          this.domImages = cleanImages;
+
+          return;
+        }
+
         this.rainParticleGroup.tick(dt);
 
         var nearDistance = this.spacePerEmitter / 1.5 * (this.spacePerEmitter / 1.5);
@@ -876,6 +898,24 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
         var _this = this;
 
         if (!media) {
+          return;
+        }
+
+        if (this.domMode) {
+          var $image = $("<img style=\"display: block; position: absolute; background-color: white; z-index: 1000; box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);\"></img>");
+          var width = Math.random() * window.innerWidth * 0.4 + window.innerWidth * 0.08;
+          $image.css("width", width + "px");
+          var left = Math.random() * window.innerWidth * 0.8;
+          $image.css("left", left + "px");
+          $image._y = -100;
+          $image.css("top", $image._y + "px");
+          $image._vel = Math.random() * 10 + 1;
+
+          var imageURL = media.type === "image" ? media.media.url : media.thumbnail.url;
+          $image.attr("src", imageURL);
+
+          $("body").append($image);
+          this.domImages.push($image);
           return;
         }
 
@@ -1204,11 +1244,7 @@ function createWall(options) {
   });
 }
 
-// DO DOM
-
-// DO DOM
-
-},{"../geometry-util":6,"../lib/buzz":8,"../lib/physi":9,"../lib/shader-particle-engine":11,"../parametric-geometries":14,"../scorekeeper.es6":15,"../sheen-mesh":16,"./gallery-layout.es6":3,"kutility":21,"three":23,"tween.js":24}],5:[function(require,module,exports){
+},{"../geometry-util":6,"../lib/buzz":8,"../lib/physi":9,"../lib/shader-particle-engine":11,"../parametric-geometries":14,"../scorekeeper.es6":15,"../sheen-mesh":16,"./gallery-layout.es6":3,"jquery":20,"kutility":21,"three":23,"tween.js":24}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -4561,24 +4597,6 @@ var MainScene = exports.MainScene = (function (_SheenScene) {
         }, 1000);
 
         this.hasStarted = true;
-
-        if (!this.onPhone) {
-          // after 43 seconds show the first key hint
-          setTimeout(function () {
-            //$('#key-hint-1').fadeIn(666);
-            setTimeout(function () {
-              $("#key-hint-1").fadeOut(666);
-            }, 9666);
-          }, 43 * 1000);
-
-          // after 3.5 minutes show the second key hint
-          setTimeout(function () {
-            //$('#key-hint-2').fadeIn(666);
-            setTimeout(function () {
-              $("#key-hint-2").fadeOut(666);
-            }, 9666);
-          }, 210 * 1000);
-        }
       }
     },
     makeLights: {
