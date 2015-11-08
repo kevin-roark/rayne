@@ -421,6 +421,11 @@ export class RainRoom extends GalleryLayout {
       wall.mesh.needsUpdate = true;
     }
 
+    // score keep only if no more rain meshes
+    if (this.stopCreatingRainMeshes) {
+      this.scorekeeper.addScore(1);
+    }
+
     this.nextWallToUpdateIndex += 1;
     if (this.nextWallToUpdateIndex >= this.walls.length) {
       this.nextWallToUpdateIndex = 0;
