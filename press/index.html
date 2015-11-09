@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="icon" href="http://www.davidzwirner.com/favicon.ico">
+
+    <title>David Zwirnher Online: Press Release</title>
+
+    <meta name="google-site-verification" content="sakoiRA0L-wzDs2E18IPvRqP8eIgL9t1PnTVyq9hXyI" />
+    <meta name="description" content="Rain in a Room: Press Release" />
+    <meta name="author" content="gallery@home">
+    <meta name="keywords" content="Rain in a Room, online gallery, the gallery online, please help me look at art online">
+
+    <meta property="og:title" content="Rain in a Room: Press Release"/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:image" content="http://www.rainonme.xyz/media/hefty_mesh_shot.jpg"/>
+    <meta property="og:description" content="Rain in a Room: Press Release. Let it Flood Over You"/>
+    <meta property="og:url" content="http://www.rainonme.xyz/press"/>
+
+    <meta property="fb:admins" content="100000919641751"/>
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@LIMP__BISCUIT" />
+    <meta name="twitter:creator" content="@LIMP__BISCUIT" />
+</head>
+<body>
+    <!-- content -->
+    <div class="splash-overlay">
+      <div class="title">Rain in a Room: Press Release</div>
+      <div class="description-text">
+        Rain in a Room is a great and wet interactive experience for you
+        to explore images that museum-goers have shared at the Rain Room
+        exhibition in an environment not dissimilar from the Rain Room itself.<br>
+        Click right here to explore
+        <a href="http://www.rainonme.xyz/">Rain in a Room</a>
+        for yourself, you will not regret it.
+      </div>
+    </div>
+
+    <!-- scripts -->
+    <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script>
+      var images = [];
+      var media = [];
+      var currentMediaIndex = 0;
+      var maxHeight = window.innerHeight;
+      var waitTime = 3000;
+      var $container = $('.splash-overlay');
+      $('body').css('overflow-y', 'scroll');
+
+      $.getJSON('/media/rayne_media.json', function(instagramMedia) {
+        media = instagramMedia;
+        setTimeout(addAnImage, 1000);
+      });
+
+      function update() {
+        requestAnimationFrame(update);
+
+        for (var i = 0; i < images.length; i++) {
+          var $img = images[i];
+          $img._vel += 1.75;
+          var y = $img._y + $img._vel;
+          $img.css('top', y);
+
+          if (y > maxHeight) {
+            maxHeight = y;
+            $('body').css('height', y + 'px');
+            $container.css('height', y + 'px');
+          }
+        }
+      }
+      update();
+
+      function addAnImage() {
+        if (currentMediaIndex >= media.length) {
+          currentMediaIndex = 0;
+        }
+
+        var $image = $('<img style="display: block; position: absolute; background-color: white; z-index: -1; box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);"></img>');
+        var width = (Math.random() * window.innerWidth * 0.15) + (window.innerWidth * 0.05);
+        $image.css('width', width + 'px');
+        var left = Math.random() * window.innerWidth * 0.95 - window.innerWidth * 0.05;
+        $image.css('left', left + 'px');
+        $image._y = -100;
+        $image.css('top', $image._y + 'px');
+        $image._vel = (Math.random() * 30) + 1;
+
+        var medium = media[currentMediaIndex++];
+        var imageURL = medium.type === 'image' ? medium.media.url : medium.thumbnail.url;
+        $image.attr('src', imageURL);
+
+        $container.append($image);
+        images.push($image);
+
+        if (waitTime > 50) {
+          waitTime -= 50;
+        }
+        setTimeout(addAnImage, waitTime);
+      }
+
+      // request animation frame shim
+      (function() {
+          var lastTime = 0;
+          var vendors = ['ms', 'moz', 'webkit', 'o'];
+          for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+              window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+              window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] ||
+                                            window[vendors[x]+'CancelRequestAnimationFrame'];
+          }
+
+          if (!window.requestAnimationFrame)
+              window.requestAnimationFrame = function(callback) {
+                  var currTime = new Date().getTime();
+                  var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                  var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+                    timeToCall);
+                  lastTime = currTime + timeToCall;
+                  return id;
+              };
+
+          if (!window.cancelAnimationFrame)
+              window.cancelAnimationFrame = function(id) {
+                  clearTimeout(id);
+              };
+      }());
+    </script>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-50868415-8', 'auto');
+      ga('send', 'pageview');
+    </script>
+</body>
+</html>

@@ -840,7 +840,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           var cleanImages = [];
           for (var i = 0; i < this.domImages.length; i++) {
             var $img = this.domImages[i];
-            $img._vel += 2;
+            $img._vel += 1.75;
             var y = $img._y + $img._vel;
             $img.css("top", y);
 
@@ -909,7 +909,7 @@ var RainRoom = exports.RainRoom = (function (_GalleryLayout) {
           $image.css("left", left + "px");
           $image._y = -100;
           $image.css("top", $image._y + "px");
-          $image._vel = Math.random() * 10 + 1;
+          $image._vel = Math.random() * 30 + 1;
 
           var imageURL = media.type === "image" ? media.media.url : media.thumbnail.url;
           $image.attr("src", imageURL);
