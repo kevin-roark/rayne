@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
 
     <link rel="stylesheet" href="../css/main.css">
-    <link rel="icon" href="http://www.davidzwirner.com/favicon.ico">
+    <link rel="icon" href="./media/favicon.png">
 
     <title>David Zwirnher Online: Press Release</title>
 
@@ -83,9 +83,9 @@
         $image.css('width', width + 'px');
         var left = Math.random() * window.innerWidth * 0.95 - window.innerWidth * 0.05;
         $image.css('left', left + 'px');
-        $image._y = -100;
+        $image._y = -400;
         $image.css('top', $image._y + 'px');
-        $image._vel = (Math.random() * 30) + 1;
+        $image._vel = (Math.pow(Math.random(), 5) * 100 * (3000/waitTime)) + 1;
 
         var medium = media[currentMediaIndex++];
         var imageURL = medium.type === 'image' ? medium.media.url : medium.thumbnail.url;
@@ -94,7 +94,7 @@
         $container.append($image);
         images.push($image);
 
-        if (waitTime > 50) {
+        if (waitTime > 200) {
           waitTime -= 50;
         }
         setTimeout(addAnImage, waitTime);
