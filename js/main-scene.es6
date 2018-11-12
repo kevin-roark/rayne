@@ -1,18 +1,16 @@
+let THREE = require("three");
+let $ = require("jquery");
+let buzz = require("./lib/buzz");
+let kt = require("kutility");
+let RainyDay = require("./lib/rainyday");
 
-let THREE = require('three');
-let $ = require('jquery');
-let buzz = require('./lib/buzz');
-let kt = require('kutility');
-let RainyDay = require('./lib/rainyday');
+import { SheenScene } from "./sheen-scene.es6";
+import { Gallery } from "./gallery.es6";
 
-import {SheenScene} from './sheen-scene.es6';
-import {Gallery} from './gallery.es6';
-
-var $splashStatus = $('#splash-status');
-var BaseLoadingText = 'is loading';
+var $splashStatus = $("#splash-status");
+var BaseLoadingText = "is loading";
 
 export class MainScene extends SheenScene {
-
   /// Init
 
   constructor(renderer, camera, scene, options) {
@@ -30,11 +28,11 @@ export class MainScene extends SheenScene {
     this.loading = true;
     this.updateLoadingView();
 
-     this.sound = new buzz.sound('/media/raindrops', {
-       formats: ["mp3", "ogg"],
-       webAudioApi: true,
-       volume: 100
-     });
+    this.sound = new buzz.sound("/media/raindrops", {
+      formats: ["mp3", "ogg"],
+      webAudioApi: true,
+      volume: 100
+    });
     buzz.defaults.duration = 3000;
 
     this.makeLights();
@@ -79,9 +77,7 @@ export class MainScene extends SheenScene {
 
   // Interaction
 
-  spacebarPressed() {
-
-  }
+  spacebarPressed() {}
 
   click() {
     if (this.loading || this.hasStarted) {
@@ -98,10 +94,9 @@ export class MainScene extends SheenScene {
 
     var currentText = $splashStatus.text();
     if (currentText.length < BaseLoadingText.length + 3) {
-      currentText += '.';
+      currentText += ".";
       $splashStatus.text(currentText);
-    }
-    else {
+    } else {
       $splashStatus.text(BaseLoadingText);
     }
 
@@ -113,33 +108,36 @@ export class MainScene extends SheenScene {
   galleryDidLoad() {
     this.loading = false;
 
-    $splashStatus.text('is ready');
-    $splashStatus.css('font-style', 'italic');
+    $splashStatus.text("is ready");
+    $splashStatus.css("font-style", "italic");
 
     if (this.onPhone) {
-      $('#mobile-error-overlay').fadeIn(1000);
-    }
-    else {
+      $("#mobile-error-overlay").fadeIn(1000);
+    } else {
       setTimeout(() => {
         if (!this.hasStarted) {
-          $('#splash-controls').fadeIn(1000);
+          $("#splash-controls").fadeIn(1000);
         }
       }, 250);
       setTimeout(() => {
         if (!this.hasStarted) {
-          $('#click-to-start').fadeIn(1000);
+          $("#click-to-start").fadeIn(1000);
         }
       }, 1750);
     }
   }
 
   start() {
-    $('.splash-overlay').fadeOut(1000);
+    $(".splash-overlay").fadeOut(1000);
     if (this.onPhone) {
-      $('#mobile-error-overlay').fadeOut(1000);
+      $("#mobile-error-overlay").fadeOut(1000);
     }
 
-    this.sound.loop().play().fadeIn().fadeOut();
+    this.sound
+      .loop()
+      .play()
+      .fadeIn()
+      .fadeOut();
 
     this.rayne.layout.start();
 
@@ -148,12 +146,12 @@ export class MainScene extends SheenScene {
         blur: null,
         opacity: 0.0,
         enableCollisions: true,
-        image: document.getElementById('rain-screen-background'),
+        image: document.getElementById("rain-screen-background"),
         showImage: false
       });
 
       // add 1 drop of size from 5 - 9, every 1000ms
-      this.rainEngine.rain([ [5, 4, 1] ], 1000);
+      this.rainEngine.rain([[5, 4, 1]], 1000);
 
       var rainOpacityInterval = setInterval(() => {
         this.rainEngine.options.opacity += 0.001;
@@ -192,7 +190,13 @@ export class MainScene extends SheenScene {
     setupShadow(this.spotLight);
     container.add(this.spotLight);
 
-    this.lights = [this.frontLight, this.backLight, this.leftLight, this.rightLight, this.spotLight];
+    this.lights = [
+      this.frontLight,
+      this.backLight,
+      this.leftLight,
+      this.rightLight,
+      this.spotLight
+    ];
 
     function makeDirectionalLight() {
       var light = new THREE.DirectionalLight(0xffffff, 0.03);
@@ -208,7 +212,5 @@ export class MainScene extends SheenScene {
       light.shadowDarkness = 0.6;
       light.shadowMapWidth = light.shadowMapHeight = 2048;
     }
-
   }
-
 }

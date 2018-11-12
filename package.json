@@ -16,6 +16,8 @@
   },
   "devDependencies": {
     "babelify": "^5.0.4",
+    "eslint": "^3.14.0",
+    "eslint-config-google": "^0.7.1",
     "ncp": "^2.0.0"
   }
 }
